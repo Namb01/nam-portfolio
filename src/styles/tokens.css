@@ -1,0 +1,31 @@
+:root {
+    --green: #1FCB5E;
+    --ink: #0B0B12;
+    --chrome: #E8F1F4;
+    --teal: #0B7C8C;
+    --navy: #0A1B5C;
+    --aqua: #3DE3EA;
+    --lime: #C9F33D;
+    --pink: #FF4FA3;
+    --peach: #FF9B5E;
+    --red: #E5262B;
+
+    --font-display: "YourDisplayFont", system-ui, sans-serif;
+    --font-mono: "YourMonoFont", ui-monospace, monospace;
+    --font-body: "YourBodyFont", system-ui, sans-serif;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 16px;
+    --space-4: 24px;
+    --space-5: 40px;
+
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --dur: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --dur: 0ms;
+    }
+}
