@@ -10,7 +10,8 @@
     --peach: #FF9B5E;
     --red: #E5262B;
 
-    --font-display: "YourDisplayFont", system-ui, sans-serif;
+    /* Serpentine is commercial; Exo 2 is the free stand-in until it's licensed. */
+    --font-display: "Serpentine", "Exo 2", system-ui, sans-serif;
     --font-mono: "YourMonoFont", ui-monospace, monospace;
     --font-body: "YourBodyFont", system-ui, sans-serif;
 

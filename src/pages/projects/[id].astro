@@ -1,0 +1,23 @@
+---
+import { getCollection, render } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import CaseStudy from "../../layouts/CaseStudy.astro";
+
+// Locked ("coming-soon") songs can't be opened from the menu, so they get no page.
+export async function getStaticPaths() {
+  const projects = await getCollection("projects", (p) => p.data.status !== "coming-soon");
+  return projects.map((project) => ({
+    params: { id: project.id },
+    props: { project },
+  }));
+}
+
+type Props = { project: CollectionEntry<"projects"> };
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+---
+
+<CaseStudy id={project.id} {...project.data}>
+  <Content />
+</CaseStudy>
