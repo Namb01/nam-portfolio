@@ -1,0 +1,584 @@
+/* Select Music menu. Uses the tokens from tokens.css. */
+
+/* The menu is the whole screen: exactly one viewport tall, and the song
+   list scrolls inside itself if it ever gets longer than the screen. */
+.stage {
+    height: 100svh;
+    overflow: hidden;
+    color: var(--chrome);
+    font-family: var(--font-body);
+}
+
+/* ---------- screen frame ---------- */
+
+.window {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    background-color: var(--teal);
+    /* one ornament: a faint grid, like a dance-floor panel */
+    background-image:
+        linear-gradient(rgba(11, 11, 18, 0.12) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(11, 11, 18, 0.12) 2px, transparent 2px);
+    background-size: 56px 56px;
+}
+
+.window-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 12px clamp(var(--space-3), 4vw, var(--space-5));
+    background: var(--navy);
+    border-bottom: 4px solid var(--ink);
+    /* aqua inner edge, like the era's UI frames */
+    box-shadow: inset 0 -3px 0 var(--aqua);
+}
+
+.title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(1.5rem, 4.5vw, 2.4rem);
+    line-height: 1;
+    color: var(--chrome);
+    -webkit-text-stroke: 7px var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 3px 3px 0 var(--pink);
+}
+
+.section {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 800;
+    color: var(--aqua);
+}
+
+.badge {
+    margin-left: auto;
+    min-width: 3.4rem;
+    padding: 2px 10px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    background: var(--lime);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--pink);
+}
+
+.back {
+    padding: 4px 14px;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 800;
+    background: var(--chrome);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    cursor: pointer;
+}
+
+.back:hover {
+    background: var(--aqua);
+}
+
+.back:focus-visible {
+    outline: 3px solid var(--pink);
+    outline-offset: 2px;
+}
+
+/* ---------- body layout ---------- */
+
+.body {
+    --pad: clamp(var(--space-4), 4vw, var(--space-5));
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(240px, 360px) 1fr;
+    grid-template-rows: minmax(0, 1fr);
+    gap: var(--pad);
+    /* no right padding: the wheel runs off the right edge like the game's */
+    padding: var(--pad) 0 var(--pad) var(--pad);
+}
+
+.preview {
+    align-self: start;
+}
+
+/* ---------- preview panel ---------- */
+
+.preview {
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--chrome);
+    color: var(--ink);
+    border: 4px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+}
+
+.jacket {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background-color: var(--pink);
+    /* halftone dots */
+    background-image: radial-gradient(var(--peach) 2.5px, transparent 3px);
+    background-size: 14px 14px;
+    border: 4px solid var(--ink);
+}
+
+.jacket-arrow {
+    width: 72%;
+    transform: rotate(var(--rot, 0deg));
+    transition: transform calc(var(--dur) * 1.5) var(--ease);
+}
+
+.meta-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: 1.35rem;
+    line-height: 1.15;
+}
+
+.meta-sub {
+    margin: 2px 0 var(--space-3);
+    color: var(--navy);
+}
+
+.meta dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px var(--space-3);
+    margin: 0;
+    align-items: center;
+}
+
+.meta dt {
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.meta dd {
+    margin: 0;
+    font-weight: 700;
+}
+
+.diamonds {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    font-size: 0.8rem;
+}
+
+.diamond {
+    display: inline-block;
+}
+
+.diamond.on {
+    color: var(--pink);
+    -webkit-text-stroke: 1px var(--ink);
+}
+
+/* ---------- chips (status / level tags) ---------- */
+
+.chip {
+    display: inline-block;
+    padding: 1px 8px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    white-space: nowrap;
+    border: 2px solid var(--ink);
+    color: var(--ink);
+}
+
+.chip-cleared {
+    background: var(--lime);
+}
+
+.chip-in-progress {
+    background: var(--peach);
+}
+
+.chip-level {
+    background: var(--aqua);
+}
+
+.chip-coming-soon {
+    background: var(--red);
+    color: var(--chrome);
+}
+
+/* ---------- song list ---------- */
+
+/* The wheel is a fixed window; the list slides inside it (see Menu.tsx).
+   It spans the full height between the title bar and the hint bar. */
+.wheel {
+    min-height: 0;
+    overflow: hidden;
+    margin-block: calc(var(--pad) * -1);
+    /* left: room for the selected row's light to show */
+    padding-left: 24px;
+}
+
+.list {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    transition: transform calc(var(--dur) * 1.2) var(--ease);
+}
+
+.row {
+    position: relative;
+    overflow: hidden;
+    /* Curved wheel: the selected row (--d 0) is longest, and each step away
+       is shorter by a growing amount, so the left edges trace an arc. */
+    width: calc(min(100%, 760px) - (var(--d, 0) * 22px + var(--d, 0) * var(--d, 0) * 8px));
+    margin-left: auto;
+    display: grid;
+    grid-template-columns: 1.1rem 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px var(--space-4) 12px var(--space-3);
+    text-align: left;
+    font: inherit;
+    color: var(--chrome);
+    background: var(--navy);
+    border: 4px solid var(--ink);
+    /* runs off the right edge of the screen */
+    border-right: 0;
+    box-shadow: inset 0 0 0 2px var(--teal);
+    cursor: pointer;
+    transition:
+        width calc(var(--dur) * 1.2) var(--ease),
+        background-color var(--dur) var(--ease);
+}
+
+.row:hover {
+    background: #14307f;
+}
+
+.row.selected {
+    background: var(--lime);
+    color: var(--ink);
+    border-color: var(--ink);
+    /* overflow is hidden for the sheen, so the light sits on the row itself */
+    animation: blink 0.8s ease-in-out infinite;
+}
+
+/* selected row blinks between two light levels, like an arcade cursor */
+@keyframes blink {
+    0%,
+    100% {
+        background: var(--lime);
+        box-shadow:
+            inset 0 0 0 3px var(--chrome),
+            0 0 0 3px var(--lime),
+            0 0 16px 4px rgba(201, 243, 61, 0.55);
+    }
+
+    50% {
+        background: #e9ff9a;
+        box-shadow:
+            inset 0 0 0 3px #ffffff,
+            0 0 0 3px #ffffff,
+            0 0 30px 10px rgba(201, 243, 61, 0.9);
+    }
+}
+
+/* a streak of light sweeps across the selected row */
+.row.selected::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        100deg,
+        transparent 35%,
+        rgba(255, 255, 255, 0.75) 48%,
+        rgba(255, 255, 255, 0.75) 52%,
+        transparent 65%
+    );
+    transform: translateX(-100%);
+    animation: sheen 1.6s ease-in-out infinite;
+}
+
+@keyframes sheen {
+    60%,
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.row:focus-visible {
+    outline: 3px solid var(--chrome);
+    outline-offset: 3px;
+}
+
+.row[aria-disabled="true"] {
+    cursor: default;
+}
+
+.row-cursor {
+    width: 0.9rem;
+    height: 1.2rem;
+    background: transparent;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.row.selected .row-cursor {
+    background: var(--ink);
+}
+
+.row-text {
+    display: grid;
+    gap: 2px;
+}
+
+.row-label {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 800;
+    font-size: 1.25rem;
+    line-height: 1.15;
+}
+
+.row-sub {
+    font-size: 0.9rem;
+    color: var(--aqua);
+}
+
+.row.selected .row-sub {
+    color: var(--ink);
+}
+
+.empty {
+    align-self: start;
+    margin: 0;
+    padding: var(--space-3);
+    background: var(--navy);
+    border: 4px solid var(--ink);
+}
+
+/* ---------- controls hint ---------- */
+
+.hint {
+    margin: 0;
+    padding: 10px clamp(var(--space-3), 4vw, var(--space-5));
+    background: var(--ink);
+    color: var(--chrome);
+    font-size: 0.85rem;
+}
+
+.hint kbd {
+    display: inline-block;
+    min-width: 1.6rem;
+    margin-right: 4px;
+    padding: 1px 6px;
+    text-align: center;
+    font: inherit;
+    font-weight: 700;
+    background: var(--chrome);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-bottom-width: 4px;
+}
+
+.hint-keys kbd+kbd {
+    margin-left: 0;
+}
+
+.hint-touch {
+    display: none;
+}
+
+@media (pointer: coarse) {
+    .hint-keys {
+        display: none;
+    }
+
+    .hint-touch {
+        display: inline;
+    }
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 720px) {
+    .body {
+        --pad: var(--space-3);
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    /* stacked under the preview, so only bleed off the bottom */
+    .wheel {
+        margin-top: 0;
+    }
+
+    .preview {
+        grid-template-columns: 96px 1fr;
+        align-items: center;
+        margin-right: var(--pad);
+    }
+
+    .row {
+        min-height: 56px;
+    }
+
+    .window-bar {
+        flex-wrap: wrap;
+    }
+}
+
+/* ---------- motion ---------- */
+
+/* preview panel slides in on every move; diamonds fill one at a time */
+.meta {
+    animation: meta-in 260ms var(--ease) both;
+}
+
+@keyframes meta-in {
+    from {
+        opacity: 0;
+        transform: translateX(18px);
+    }
+}
+
+.diamond {
+    animation: diamond-in 180ms var(--ease) both;
+    animation-delay: calc(120ms + var(--i) * 35ms);
+}
+
+@keyframes diamond-in {
+    from {
+        opacity: 0;
+        transform: scale(0.2);
+    }
+}
+
+/* rows fly in from the right when a list opens */
+.list > li {
+    animation: row-in 300ms var(--ease) both;
+    animation-delay: calc(var(--i) * 50ms);
+}
+
+@keyframes row-in {
+    from {
+        opacity: 0;
+        transform: translateX(60px);
+    }
+}
+
+/* selected row flashes when chosen */
+.stage .row.selected.launching {
+    animation: flash 90ms steps(1) 6;
+}
+
+@keyframes flash {
+    50% {
+        background: var(--chrome);
+    }
+}
+
+/* "HERE WE GO!" wipe: a pink band and a navy band cross, then the text slams in */
+.go {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    pointer-events: all;
+}
+
+.go::before,
+.go::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 50%;
+    border-block: 6px solid var(--ink);
+}
+
+.go::before {
+    top: 0;
+    background-color: var(--pink);
+    background-image: radial-gradient(var(--peach) 3px, transparent 3.5px);
+    background-size: 18px 18px;
+    animation: wipe-left 300ms var(--ease) both;
+}
+
+.go::after {
+    bottom: 0;
+    background: var(--navy);
+    animation: wipe-right 300ms var(--ease) 60ms both;
+}
+
+@keyframes wipe-left {
+    from { transform: translateX(-100%); }
+}
+
+@keyframes wipe-right {
+    from { transform: translateX(100%); }
+}
+
+.go-text {
+    position: relative;
+    z-index: 1;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(2.5rem, 11vw, 7rem);
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--lime);
+    -webkit-text-stroke: 10px var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 6px 6px 0 var(--ink);
+    animation: slam 320ms var(--ease) 220ms both;
+}
+
+@keyframes slam {
+    from {
+        opacity: 0;
+        transform: scale(2.4) rotate(-6deg);
+    }
+}
+
+/* Reduced motion: nothing slides, flies or sweeps, but the menu still feels
+   alive. The selected row keeps a slow, gentle light and the preview fades. */
+@media (prefers-reduced-motion: reduce) {
+    .row.selected {
+        animation-duration: 2.4s;
+    }
+
+    .row.selected::after,
+    .diamond,
+    .list > li,
+    .stage .row.selected.launching {
+        animation: none;
+    }
+
+    .meta {
+        animation-name: fade-in;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}

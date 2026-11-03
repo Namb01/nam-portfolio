@@ -1,0 +1,97 @@
+---
+import type { CollectionEntry } from "astro:content";
+import Base from "./Base.astro";
+import "../styles/menu.css";
+import "../styles/case-study.css";
+
+type Props = CollectionEntry<"projects">["data"] & { id: string };
+
+const { id, title, artist, bpm, difficulty, status, tags, links } = Astro.props;
+
+const STATUS_LABEL = {
+  cleared: "Cleared",
+  "in-progress": "In progress",
+  "coming-soon": "Coming soon",
+} as const;
+---
+
+<Base title={`${title} · Nam Bui`}>
+  <div class="stage case-stage">
+    <article class="window">
+      <header class="window-bar">
+        <a class="back" href={`/#projects/${id}`}>Back</a>
+        <span class="section">Projects</span>
+        <span class="badge" aria-label={`Difficulty ${difficulty} out of 10`}>
+          {String(difficulty).padStart(2, "0")}
+        </span>
+      </header>
+
+      <div class="body case-body">
+        <aside class="preview">
+          <div class="jacket" aria-hidden="true">
+            <svg class="jacket-arrow" viewBox="0 0 100 100">
+              <polygon points="54,12 96,56 72,56 72,96 36,96 36,56 12,56" fill="#0B0B12" />
+              <polygon
+                points="50,8 92,52 68,52 68,92 32,92 32,52 8,52"
+                fill="#C9F33D"
+                stroke="#0B0B12"
+                stroke-width="4"
+              />
+            </svg>
+          </div>
+
+          <div class="meta">
+            <p class="meta-sub">{artist}</p>
+            <dl>
+              <dt>Difficulty</dt>
+              <dd aria-label={`${difficulty} out of 10`}>
+                <span class="diamonds" aria-hidden="true">
+                  {"◆".repeat(difficulty)}{"◇".repeat(10 - difficulty)}
+                </span>
+              </dd>
+              <dt>BPM</dt>
+              <dd>{bpm}</dd>
+              <dt>Status</dt>
+              <dd><span class={`chip chip-${status}`}>{STATUS_LABEL[status]}</span></dd>
+              {
+                tags.length > 0 && (
+                  <>
+                    <dt>Genre</dt>
+                    <dd>{tags.join(", ")}</dd>
+                  </>
+                )
+              }
+            </dl>
+
+            {
+              (links.live || links.repo) && (
+                <p class="case-links">
+                  {links.live && <a class="case-link" href={links.live}>Play it live</a>}
+                  {links.repo && <a class="case-link" href={links.repo}>Source code</a>}
+                </p>
+              )
+            }
+          </div>
+        </aside>
+
+        <div class="prose">
+          <h1 class="title case-title">{title}</h1>
+          <slot />
+        </div>
+      </div>
+
+      <p class="hint">
+        <span class="hint-keys"><kbd>Esc</kbd> Back to Select Music</span>
+        <span class="hint-touch">Tap Back to return</span>
+      </p>
+    </article>
+  </div>
+
+  <script>
+    // Esc returns to the song list, same as in the menu.
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      document.querySelector<HTMLAnchorElement>(".window-bar .back")?.click();
+    });
+  </script>
+</Base>
