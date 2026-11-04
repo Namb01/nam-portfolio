@@ -10,14 +10,19 @@
     min-height: 100svh;
 }
 
+/* the menu splits the screen in half for the wheel; here the write-up gets the room */
 .case-body {
+    grid-template-columns: minmax(240px, 360px) 1fr;
     grid-template-rows: auto;
     align-items: start;
+    padding-right: var(--pad);
 }
 
 .case-body .preview {
     position: sticky;
     top: var(--space-3);
+    justify-self: stretch;
+    max-width: none;
 }
 
 a.back {
@@ -147,6 +152,10 @@ a.back {
 }
 
 @media (max-width: 720px) {
+    .case-body {
+        grid-template-columns: 1fr;
+    }
+
     .case-body .preview {
         position: static;
     }

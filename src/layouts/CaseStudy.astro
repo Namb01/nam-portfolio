@@ -19,8 +19,8 @@ const STATUS_LABEL = {
   <div class="stage case-stage">
     <article class="window">
       <header class="window-bar">
+        <span class="section">PROJECTS</span>
         <a class="back" href={`/#projects/${id}`}>Back</a>
-        <span class="section">Projects</span>
         <span class="badge" aria-label={`Difficulty ${difficulty} out of 10`}>
           {String(difficulty).padStart(2, "0")}
         </span>
@@ -28,16 +28,13 @@ const STATUS_LABEL = {
 
       <div class="body case-body">
         <aside class="preview">
+          <p class="bpm">
+            <span class="bpm-label">BPM</span>
+            <span class="bpm-value">{bpm}</span>
+          </p>
+          <!-- Placeholder until there's real jacket art for each track. -->
           <div class="jacket" aria-hidden="true">
-            <svg class="jacket-arrow" viewBox="0 0 100 100">
-              <polygon points="54,12 96,56 72,56 72,96 36,96 36,56 12,56" fill="#0B0B12" />
-              <polygon
-                points="50,8 92,52 68,52 68,92 32,92 32,52 8,52"
-                fill="#C9F33D"
-                stroke="#0B0B12"
-                stroke-width="4"
-              />
-            </svg>
+            <span class="jacket-placeholder">Jacket art</span>
           </div>
 
           <div class="meta">
@@ -49,8 +46,6 @@ const STATUS_LABEL = {
                   {"◆".repeat(difficulty)}{"◇".repeat(10 - difficulty)}
                 </span>
               </dd>
-              <dt>BPM</dt>
-              <dd>{bpm}</dd>
               <dt>Status</dt>
               <dd><span class={`chip chip-${status}`}>{STATUS_LABEL[status]}</span></dd>
               {
