@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import "../styles/menu.css";
 
@@ -19,15 +19,19 @@ type Category = {
   label: string;
   blurb: string;
   ready: boolean; // false = shows a red "Coming soon" tag and can't be opened yet
+  bpm: number; // just for show in the preview's BPM readout
 };
 
 // Order matches your list. Flip `ready` to true once the page exists.
 const CATEGORIES: Category[] = [
-  { id: "about", label: "About", blurb: "Who's behind the screen", ready: false },
-  { id: "projects", label: "Projects", blurb: "Things I've built", ready: true },
-  { id: "skills", label: "Skills", blurb: "Tools I've used in real projects", ready: false },
-  { id: "contact", label: "Contact", blurb: "Say hello", ready: false },
+  { id: "about", label: "ABOUT", blurb: "Who's behind the screen", ready: false, bpm: 120 },
+  { id: "projects", label: "PROJECTS", blurb: "Things I've built", ready: true, bpm: 150 },
+  { id: "skills", label: "SKILLS", blurb: "Tools I've used in real projects", ready: false, bpm: 135 },
+  { id: "contact", label: "CONTACT", blurb: "Say hello", ready: false, bpm: 98 },
 ];
+
+// The header timer counts down from this, one step per second, and stops at 00.
+const TIMER_START = 99;
 
 const STATUS_LABEL: Record<Status, string> = {
   cleared: "Cleared",
@@ -38,13 +42,42 @@ const STATUS_LABEL: Record<Status, string> = {
 // How long the "HERE WE GO!" wipe plays before the page changes.
 const LAUNCH_MS = 700;
 
+// Row text color, like the game's difficulty colors: green for your own
+// rows, yellow then red for the filler.
+type Tone = "easy" | "medium" | "hard";
+
 type Item = {
   key: string;
   label: string;
   sub: string;
   locked: boolean;
   tag: string | null;
+  tone: Tone;
 };
+
+// Locked "COMING SOON" rows pad each list out so the wheel looks full.
+const MIN_ROWS = 10;
+
+function withFiller(items: Item[]): Item[] {
+  const count = Math.max(MIN_ROWS - items.length, 0);
+  // first half yellow, second half red
+  const filler = Array.from({ length: count }, (_, n) => ({
+    key: `filler-${n}`,
+    label: "COMING SOON",
+    sub: "Not unlocked yet",
+    locked: true,
+    tag: null,
+    tone: (n < Math.ceil(count / 2) ? "medium" : "hard") as Tone,
+  }));
+  return [...items, ...filler];
+}
+
+// The wheel loops: each row's place relative to the selected one, taking the
+// short way round, so there are always rows above and below the selection.
+function wheelOffset(i: number, index: number, n: number) {
+  const half = Math.floor(n / 2);
+  return ((((i - index) % n) + n + half) % n) - half;
+}
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -70,16 +103,14 @@ export default function Menu({ projects }: { projects: Project[] }) {
   const [screen, setScreen] = useState<"categories" | "songs">("categories");
   const [index, setIndex] = useState(0);
   const [launching, setLaunching] = useState<string | null>(null);
+  const [timer, setTimer] = useState(TIMER_START);
   const stageRef = useRef<HTMLDivElement>(null);
-  const wheelRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const mounted = useRef(false);
-  const placedScreen = useRef<string | null>(null);
   // Whether the row under the pointer was already selected when pressed.
   const pressedSelected = useRef(true);
 
-  const items: Item[] =
+  const realItems: Item[] =
     screen === "categories"
       ? CATEGORIES.map((c) => ({
           key: c.id,
@@ -87,6 +118,7 @@ export default function Menu({ projects }: { projects: Project[] }) {
           sub: c.blurb,
           locked: !c.ready,
           tag: c.ready ? null : "Coming soon",
+          tone: "easy",
         }))
       : projects.map((p) => ({
           key: p.id,
@@ -94,10 +126,14 @@ export default function Menu({ projects }: { projects: Project[] }) {
           sub: p.artist,
           locked: p.status === "coming-soon",
           tag: p.status === "coming-soon" ? "Coming soon" : `Lv ${p.difficulty}`,
+          tone: p.status === "coming-soon" ? "hard" : "easy",
         }));
+  // No filler when there's nothing real to show, so the empty message appears.
+  const items = realItems.length > 0 ? withFiller(realItems) : realItems;
 
-  const project = screen === "songs" ? projects[index] : null;
-  const category = screen === "categories" ? CATEGORIES[index] : null;
+  // Both are null on a filler row.
+  const project = screen === "songs" ? (projects[index] ?? null) : null;
+  const category = screen === "categories" ? (CATEGORIES[index] ?? null) : null;
 
   // Listen on the window so arrow keys work before anything is clicked.
   // The ref always points at this render's handler, so the listener sees
@@ -131,6 +167,14 @@ export default function Menu({ projects }: { projects: Project[] }) {
     history.replaceState(null, "", window.location.pathname);
   }, []);
 
+  // Header timer, like the game's song-select countdown. Purely decorative:
+  // nothing happens when it runs out.
+  useEffect(() => {
+    if (timer === 0) return;
+    const id = window.setTimeout(() => setTimer((t) => t - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [timer]);
+
   // The browser's back button can restore this page from cache mid-wipe.
   useEffect(() => {
     const onShow = (e: PageTransitionEvent) => {
@@ -140,30 +184,12 @@ export default function Menu({ projects }: { projects: Project[] }) {
     return () => window.removeEventListener("pageshow", onShow);
   }, []);
 
-  // Wheel: slide the list so the selected row sits in the middle, like the
-  // song wheel. Snap without animating on first paint and on screen changes.
-  useLayoutEffect(() => {
-    const wheel = wheelRef.current;
-    const list = listRef.current;
-    const li = itemRefs.current[index]?.parentElement;
-    if (!wheel || !list || !li) return;
-
-    const place = (animate: boolean) => {
-      list.style.transition = animate ? "" : "none";
-      list.style.transform = `translateY(${
-        wheel.clientHeight / 2 - (li.offsetTop + li.offsetHeight / 2)
-      }px)`;
-      wheel.scrollTop = 0;
-    };
-    place(placedScreen.current === screen);
-    placedScreen.current = screen;
-
-    // Re-centre when the wheel resizes or the fonts load and change row heights.
-    const observer = new ResizeObserver(() => place(false));
-    observer.observe(wheel);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [index, screen, items.length]);
+  // Remember where the wheel was, so the row that wraps from one end to the
+  // other can jump instead of sliding across the whole wheel.
+  const prevIndex = useRef(index);
+  useEffect(() => {
+    prevIndex.current = index;
+  }, [index]);
 
   function go(url: string) {
     if (prefersReducedMotion()) {
@@ -249,39 +275,36 @@ export default function Menu({ projects }: { projects: Project[] }) {
     activate(i);
   }
 
-  const arrowStyle = { "--rot": `${(index % 4) * 90}deg` } as CSSProperties;
+  const bpm = project?.bpm ?? category?.bpm ?? "???";
 
   return (
     <div className="stage" ref={stageRef}>
       <div className="window">
         <header className="window-bar">
-          <h1 className="title">Select Music</h1>
-          {screen === "songs" && <span className="section">Projects</span>}
+          <div className="title-block">
+            <h1 className="title">Select Music</h1>
+          </div>
+          {screen === "songs" && <span className="section">PROJECTS</span>}
           {screen === "songs" && (
             <button type="button" className="back" onClick={back}>
               Back
             </button>
           )}
-          <span className="badge" aria-label={`${items.length} items`}>
-            {String(items.length).padStart(2, "0")}
+          {/* hidden from screen readers so it isn't announced every second */}
+          <span className="badge timer" aria-hidden="true">
+            {String(timer).padStart(2, "0")}
           </span>
         </header>
 
         <div className="body">
           <aside className="preview" aria-live="polite">
+            <p className="bpm">
+              <span className="bpm-label">BPM</span>
+              <span className="bpm-value">{bpm}</span>
+            </p>
+            {/* Placeholder until there's real jacket art for each track. */}
             <div className="jacket" aria-hidden="true">
-              <svg className="jacket-arrow" style={arrowStyle} viewBox="0 0 100 100">
-                <polygon
-                  points="54,12 96,56 72,56 72,96 36,96 36,56 12,56"
-                  fill="#0B0B12"
-                />
-                <polygon
-                  points="50,8 92,52 68,52 68,92 32,92 32,52 8,52"
-                  fill="#C9F33D"
-                  stroke="#0B0B12"
-                  strokeWidth="4"
-                />
-              </svg>
+              <span className="jacket-placeholder">Jacket art</span>
             </div>
 
             {/* Keyed by selection so it re-mounts and plays its entrance each move. */}
@@ -295,8 +318,6 @@ export default function Menu({ projects }: { projects: Project[] }) {
                     <dd aria-label={`${project.difficulty} out of 10`}>
                       <Diamonds level={project.difficulty} />
                     </dd>
-                    <dt>BPM</dt>
-                    <dd>{project.bpm}</dd>
                     <dt>Status</dt>
                     <dd>
                       <span className={`chip chip-${project.status}`}>
@@ -335,20 +356,33 @@ export default function Menu({ projects }: { projects: Project[] }) {
                   </dl>
                 </>
               )}
+
+              {!project && !category && (
+                <>
+                  <h2 className="meta-title">COMING SOON</h2>
+                  <p className="meta-sub">Not unlocked yet</p>
+                </>
+              )}
             </div>
           </aside>
 
           {items.length === 0 ? (
             <p className="empty">No tracks yet. Add a file to src/content/projects.</p>
           ) : (
-            <div className="wheel" ref={wheelRef}>
+            <div className="wheel">
               {/* Keyed by screen so the rows slide in again when switching lists. */}
-              <ul className="list" ref={listRef} key={screen}>
-                {items.map((item, i) => (
+              <ul className="list" key={screen}>
+                {items.map((item, i) => {
+                  const offset = wheelOffset(i, index, items.length);
+                  const wrapped =
+                    Math.abs(offset - wheelOffset(i, prevIndex.current, items.length)) > 1;
+                  return (
                   <li
                     key={item.key}
-                    // --d (distance from the selected row) shortens rows to curve the wheel
-                    style={{ "--i": i, "--d": Math.abs(i - index) } as CSSProperties}
+                    className={wrapped ? "wrapped" : undefined}
+                    // --o places the row on the wheel; --d (distance from the
+                    // selected row) shortens rows to curve it
+                    style={{ "--o": offset, "--d": Math.abs(offset) } as CSSProperties}
                   >
                     <button
                       type="button"
@@ -357,6 +391,7 @@ export default function Menu({ projects }: { projects: Project[] }) {
                       }}
                       className={[
                         "row",
+                        `tone-${item.tone}`,
                         i === index && "selected",
                         i === index && launching && "launching",
                       ]
@@ -370,7 +405,6 @@ export default function Menu({ projects }: { projects: Project[] }) {
                       onFocus={() => setIndex(i)}
                       onClick={() => onRowClick(i)}
                     >
-                      <span className="row-cursor" aria-hidden="true" />
                       <span className="row-text">
                         <span className="row-label">{item.label}</span>
                         <span className="row-sub">{item.sub}</span>
@@ -384,7 +418,8 @@ export default function Menu({ projects }: { projects: Project[] }) {
                       )}
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -392,10 +427,9 @@ export default function Menu({ projects }: { projects: Project[] }) {
 
         <p className="hint">
           <span className="hint-keys">
-            <kbd>↑</kbd>
-            <kbd>↓</kbd> Move <kbd>→</kbd>
-            <kbd>Space</kbd> Select <kbd>←</kbd>
-            <kbd>Esc</kbd> Back
+             Move <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>
+            Select <kbd>Space</kbd>
+            Back <kbd>Esc</kbd>
           </span>
           <span className="hint-touch">Tap to pick, tap again to open</span>
         </p>

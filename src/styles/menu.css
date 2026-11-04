@@ -27,11 +27,11 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: 12px clamp(var(--space-3), 4vw, var(--space-5));
-    background: var(--navy);
+    padding: 20px clamp(var(--space-3), 4vw, var(--space-5));
+    background: var(--yellow);
     border-bottom: 4px solid var(--ink);
-    /* aqua inner edge, like the era's UI frames */
-    box-shadow: inset 0 -3px 0 var(--aqua);
+    /* darker inner edge, like the era's UI frames */
+    box-shadow: inset 0 -4px 0 #e8a800;
 }
 
 .title {
@@ -39,19 +39,22 @@
     font-family: var(--font-display);
     font-style: italic;
     font-weight: 900;
-    font-size: clamp(1.5rem, 4.5vw, 2.4rem);
+    font-size: clamp(1.8rem, 5vw, 3.4rem);
     line-height: 1;
-    color: var(--chrome);
-    -webkit-text-stroke: 7px var(--ink);
+    color: #0b5f6b;
     paint-order: stroke fill;
-    text-shadow: 3px 3px 0 var(--pink);
+    text-shadow: 4px 4px 0 var(--ink);
 }
 
+/* Sizes are set explicitly: Back is a <button> in the menu but an <a> on case
+   study pages, and buttons don't inherit the page's font size. */
 .section {
     font-family: var(--font-display);
     font-style: italic;
     font-weight: 800;
-    color: var(--aqua);
+    font-size: 1.1rem;
+    line-height: 1.2;
+    color: var(--navy);
 }
 
 .badge {
@@ -64,17 +67,29 @@
     font-weight: 900;
     font-size: 1.5rem;
     font-variant-numeric: tabular-nums;
-    background: var(--lime);
-    color: var(--ink);
+    background: var(--teal);
+    color: var(--yellow);
+    -webkit-text-stroke: 5px var(--ink);
+    paint-order: stroke fill;
     border: 3px solid var(--ink);
-    box-shadow: 3px 3px 0 var(--pink);
+    box-shadow: 3px 3px 0 var(--ink);
+}
+
+.badge.timer {
+    min-width: 5rem;
+    padding: 4px 12px;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    line-height: 1;
 }
 
 .back {
+    display: inline-block;
     padding: 4px 14px;
     font-family: var(--font-display);
     font-style: italic;
     font-weight: 800;
+    font-size: 1rem;
+    line-height: 1.2;
     background: var(--chrome);
     color: var(--ink);
     border: 3px solid var(--ink);
@@ -97,15 +112,20 @@
     --pad: clamp(var(--space-4), 4vw, var(--space-5));
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(240px, 360px) 1fr;
+    /* the wheel takes the right half of the screen, like the game's */
+    grid-template-columns: minmax(0, 1fr) 50vw;
     grid-template-rows: minmax(0, 1fr);
-    gap: var(--pad);
+    gap: var(--space-4);
     /* no right padding: the wheel runs off the right edge like the game's */
     padding: var(--pad) 0 var(--pad) var(--pad);
 }
 
+/* centred in the left half of the screen */
 .preview {
     align-self: start;
+    justify-self: center;
+    width: 100%;
+    max-width: 480px;
 }
 
 /* ---------- preview panel ---------- */
@@ -121,8 +141,37 @@
     box-shadow: 5px 5px 0 var(--ink);
 }
 
+/* BPM readout above the jacket */
+.bpm {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 4px 12px;
+    background: var(--navy);
+    border: 3px solid var(--ink);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 900;
+}
+
+.bpm-label {
+    font-size: 0.9rem;
+    color: var(--aqua);
+}
+
+.bpm-value {
+    font-size: 1.8rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--lime);
+    -webkit-text-stroke: 5px var(--ink);
+    paint-order: stroke fill;
+}
+
+/* wide banner, like the game's song banners */
 .jacket {
-    aspect-ratio: 1;
+    aspect-ratio: 2 / 1;
     display: grid;
     place-items: center;
     overflow: hidden;
@@ -133,10 +182,15 @@
     border: 4px solid var(--ink);
 }
 
-.jacket-arrow {
-    width: 72%;
-    transform: rotate(var(--rot, 0deg));
-    transition: transform calc(var(--dur) * 1.5) var(--ease);
+.jacket-placeholder {
+    padding: 4px 12px;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--chrome);
+    border: 3px dashed var(--ink);
 }
 
 .meta-title {
@@ -218,82 +272,120 @@
 
 /* ---------- song list ---------- */
 
-/* The wheel is a fixed window; the list slides inside it (see Menu.tsx).
-   It spans the full height between the title bar and the hint bar. */
+/* The wheel is a fixed window that spans the full height between the title
+   bar and the hint bar. Rows are stacked around its middle by --o, their
+   place relative to the selected row (see wheelOffset in Menu.tsx). */
 .wheel {
+    --row-h: 76px;
+    --pitch: calc(var(--row-h) + 10px);
     min-height: 0;
     overflow: hidden;
     margin-block: calc(var(--pad) * -1);
-    /* left: room for the selected row's light to show */
-    padding-left: 24px;
 }
 
 .list {
     position: relative;
+    height: 100%;
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
-    align-content: start;
-    gap: 10px;
-    transition: transform calc(var(--dur) * 1.2) var(--ease);
 }
 
+.list > li {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    translate: 0 calc(-50% + var(--o) * var(--pitch));
+    transition: translate calc(var(--dur) * 1.2) var(--ease);
+}
+
+/* the row that wraps round from one end of the wheel to the other */
+.list > li.wrapped,
+.list > li.wrapped .row {
+    transition: none;
+}
+
+/* Each row is a banner with its top-left corner cut off. The button itself is
+   the ink outline (clipped to the banner shape); ::before is the gradient
+   fill, inset by the outline width and clipped to the same shape. */
 .row {
+    --cut: 18px;
+    --line: 4px;
+    --fill-from: #050c2e;
+    --fill-to: #0f7f8a;
+    --text: var(--green);
     position: relative;
+    isolation: isolate;
     overflow: hidden;
     /* Curved wheel: the selected row (--d 0) is longest, and each step away
        is shorter by a growing amount, so the left edges trace an arc. */
-    width: calc(min(100%, 760px) - (var(--d, 0) * 22px + var(--d, 0) * var(--d, 0) * 8px));
+    width: calc(min(100%, 1100px) - (var(--d, 0) * 22px + var(--d, 0) * var(--d, 0) * 8px));
+    height: var(--row-h);
     margin-left: auto;
     display: grid;
-    grid-template-columns: 1.1rem 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
-    padding: 12px var(--space-4) 12px var(--space-3);
+    padding: 12px var(--space-4) 12px calc(var(--space-3) + var(--line));
     text-align: left;
     font: inherit;
     color: var(--chrome);
-    background: var(--navy);
-    border: 4px solid var(--ink);
-    /* runs off the right edge of the screen */
-    border-right: 0;
-    box-shadow: inset 0 0 0 2px var(--teal);
+    background: var(--ink);
+    border: 0;
+    clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
     cursor: pointer;
-    transition:
-        width calc(var(--dur) * 1.2) var(--ease),
-        background-color var(--dur) var(--ease);
+    transition: width calc(var(--dur) * 1.2) var(--ease);
+}
+
+/* runs off the right edge of the screen, so no outline on that side */
+.row::before {
+    content: "";
+    position: absolute;
+    inset: var(--line) 0 var(--line) var(--line);
+    z-index: -1;
+    background: linear-gradient(90deg, var(--fill-from), var(--fill-to));
+    /* inner cut is smaller so the diagonal outline stays the same thickness */
+    clip-path: polygon(calc(var(--cut) - 2px) 0, 100% 0, 100% 100%, 0 100%, 0 calc(var(--cut) - 2px));
 }
 
 .row:hover {
-    background: #14307f;
+    --fill-from: #0a1a55;
+    --fill-to: #17a3ad;
 }
 
+/* green for your own rows, yellow and red for the filler */
+.row.tone-medium {
+    --text: var(--yellow);
+}
+
+.row.tone-hard {
+    --text: #ff4d4d;
+}
+
+/* selected: pale blue banner, and the text turns blue */
 .row.selected {
-    background: var(--lime);
-    color: var(--ink);
-    border-color: var(--ink);
-    /* overflow is hidden for the sheen, so the light sits on the row itself */
+    --fill-from: #a9c4ff;
+    --fill-to: #eef4ff;
+    --text: #2d5bff;
+    /* the outline flashes white, the fill brightens */
     animation: blink 0.8s ease-in-out infinite;
+}
+
+.row.selected::before {
+    animation: blink-fill 0.8s ease-in-out infinite;
 }
 
 /* selected row blinks between two light levels, like an arcade cursor */
 @keyframes blink {
-    0%,
-    100% {
-        background: var(--lime);
-        box-shadow:
-            inset 0 0 0 3px var(--chrome),
-            0 0 0 3px var(--lime),
-            0 0 16px 4px rgba(201, 243, 61, 0.55);
-    }
-
     50% {
-        background: #e9ff9a;
-        box-shadow:
-            inset 0 0 0 3px #ffffff,
-            0 0 0 3px #ffffff,
-            0 0 30px 10px rgba(201, 243, 61, 0.9);
+        background: #ffffff;
+    }
+}
+
+@keyframes blink-fill {
+    50% {
+        filter: brightness(1.15);
     }
 }
 
@@ -321,46 +413,54 @@
     }
 }
 
+/* clip-path would cut off an outline; focus always sits on the selected row
+   (roving tabindex), so a thicker outline marks it instead */
 .row:focus-visible {
-    outline: 3px solid var(--chrome);
-    outline-offset: 3px;
+    outline: 0;
+    --line: 6px;
 }
 
 .row[aria-disabled="true"] {
     cursor: default;
 }
 
-.row-cursor {
-    width: 0.9rem;
-    height: 1.2rem;
-    background: transparent;
-    clip-path: polygon(0 0, 100% 50%, 0 100%);
-}
-
-.row.selected .row-cursor {
-    background: var(--ink);
-}
-
+/* rows are a fixed height, so long text is cut short instead of wrapping */
 .row-text {
     display: grid;
     gap: 2px;
+    min-width: 0;
+}
+
+.row-label,
+.row-sub {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* room inside the clip for the outline and the italic lean, pulled back out
+   with negative margins so the text doesn't move */
+.row-label {
+    padding: 3px 6px;
+    margin: -3px -6px;
 }
 
 .row-label {
     font-family: var(--font-display);
     font-style: italic;
-    font-weight: 800;
-    font-size: 1.25rem;
-    line-height: 1.15;
+    font-weight: 900;
+    font-size: 1.6rem;
+    line-height: 1.1;
+    color: var(--text);
+    /* ink outline keeps the text readable on dark and pale rows */
+    -webkit-text-stroke: 5px var(--ink);
+    paint-order: stroke fill;
 }
 
 .row-sub {
     font-size: 0.9rem;
-    color: var(--aqua);
-}
-
-.row.selected .row-sub {
-    color: var(--ink);
+    font-weight: 700;
+    color: var(--text);
 }
 
 .empty {
@@ -424,18 +524,23 @@
 
     /* stacked under the preview, so only bleed off the bottom */
     .wheel {
+        --row-h: 64px;
         margin-top: 0;
     }
 
     .preview {
-        grid-template-columns: 96px 1fr;
+        grid-template-columns: 128px 1fr;
         align-items: center;
+        justify-self: stretch;
+        max-width: none;
+        width: auto;
         margin-right: var(--pad);
     }
 
-    .row {
-        min-height: 56px;
+    .bpm {
+        grid-column: 1 / -1;
     }
+
 
     .window-bar {
         flex-wrap: wrap;
@@ -471,7 +576,8 @@
 /* rows fly in from the right when a list opens */
 .list > li {
     animation: row-in 300ms var(--ease) both;
-    animation-delay: calc(var(--i) * 50ms);
+    /* from the selected row outwards */
+    animation-delay: calc(var(--d) * 50ms);
 }
 
 @keyframes row-in {
@@ -561,7 +667,8 @@
 /* Reduced motion: nothing slides, flies or sweeps, but the menu still feels
    alive. The selected row keeps a slow, gentle light and the preview fades. */
 @media (prefers-reduced-motion: reduce) {
-    .row.selected {
+    .row.selected,
+    .row.selected::before {
         animation-duration: 2.4s;
     }
 
