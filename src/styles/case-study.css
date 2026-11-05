@@ -21,8 +21,6 @@
 .case-body .preview {
     position: sticky;
     top: var(--space-3);
-    justify-self: stretch;
-    max-width: none;
 }
 
 a.back {

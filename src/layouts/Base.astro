@@ -17,9 +17,10 @@ const { title = "Nam Bui" } = Astro.props;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@1,800;1,900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap"
     />
     <title>{title}</title>
+    <slot name="head" />
   </head>
   <body>
     <slot />

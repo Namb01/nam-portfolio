@@ -18,16 +18,51 @@ type Category = {
   id: string;
   label: string;
   blurb: string;
-  ready: boolean; // false = shows a red "Coming soon" tag and can't be opened yet
-  bpm: number; // just for show in the preview's BPM readout
+  ready: boolean; // false = can't be opened yet
+  // just for show in the preview, like a song's stats
+  bpm: number;
+  difficulty: number;
+  genre: string;
 };
 
 // Order matches your list. Flip `ready` to true once the page exists.
 const CATEGORIES: Category[] = [
-  { id: "about", label: "ABOUT", blurb: "Who's behind the screen", ready: false, bpm: 120 },
-  { id: "projects", label: "PROJECTS", blurb: "Things I've built", ready: true, bpm: 150 },
-  { id: "skills", label: "SKILLS", blurb: "Tools I've used in real projects", ready: false, bpm: 135 },
-  { id: "contact", label: "CONTACT", blurb: "Say hello", ready: false, bpm: 98 },
+  {
+    id: "about",
+    label: "ABOUT",
+    blurb: "Who's behind the screen",
+    ready: false,
+    bpm: 120,
+    difficulty: 2,
+    genre: "Profile",
+  },
+  {
+    id: "projects",
+    label: "PROJECTS",
+    blurb: "Things I've built",
+    ready: true,
+    bpm: 150,
+    difficulty: 7,
+    genre: "Software",
+  },
+  {
+    id: "skills",
+    label: "SKILLS",
+    blurb: "Tools I've used in real projects",
+    ready: false,
+    bpm: 135,
+    difficulty: 5,
+    genre: "Toolbox",
+  },
+  {
+    id: "contact",
+    label: "CONTACT",
+    blurb: "Say hello",
+    ready: false,
+    bpm: 98,
+    difficulty: 1,
+    genre: "Social",
+  },
 ];
 
 // The header timer counts down from this, one step per second, and stops at 00.
@@ -51,7 +86,7 @@ type Item = {
   label: string;
   sub: string;
   locked: boolean;
-  tag: string | null;
+  tag: string | null; // level chip on project rows
   tone: Tone;
 };
 
@@ -72,11 +107,14 @@ function withFiller(items: Item[]): Item[] {
   return [...items, ...filler];
 }
 
-// The wheel loops: each row's place relative to the selected one, taking the
-// short way round, so there are always rows above and below the selection.
-function wheelOffset(i: number, index: number, n: number) {
-  const half = Math.floor(n / 2);
-  return ((((i - index) % n) + n + half) % n) - half;
+// The wheel is an endless strip: `pos` counts up and down forever, and the
+// item at any spot is items[pos mod n]. Only SPAN spots either side of the
+// selection are drawn, so a row joins or leaves the strip off screen and every
+// visible row slides on each move.
+const SPAN = 10;
+
+function mod(a: number, n: number) {
+  return ((a % n) + n) % n;
 }
 
 function prefersReducedMotion() {
@@ -101,11 +139,14 @@ function Diamonds({ level }: { level: number }) {
 
 export default function Menu({ projects }: { projects: Project[] }) {
   const [screen, setScreen] = useState<"categories" | "songs">("categories");
-  const [index, setIndex] = useState(0);
+  // place on the endless wheel; see SPAN
+  const [pos, setPos] = useState(0);
   const [launching, setLaunching] = useState<string | null>(null);
   const [timer, setTimer] = useState(TIMER_START);
+  // which list has finished sliding in, so rows added later don't replay it
+  const [settled, setSettled] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedRef = useRef<HTMLButtonElement>(null);
   const mounted = useRef(false);
   // Whether the row under the pointer was already selected when pressed.
   const pressedSelected = useRef(true);
@@ -117,7 +158,7 @@ export default function Menu({ projects }: { projects: Project[] }) {
           label: c.label,
           sub: c.blurb,
           locked: !c.ready,
-          tag: c.ready ? null : "Coming soon",
+          tag: null,
           tone: "easy",
         }))
       : projects.map((p) => ({
@@ -125,11 +166,13 @@ export default function Menu({ projects }: { projects: Project[] }) {
           label: p.title,
           sub: p.artist,
           locked: p.status === "coming-soon",
-          tag: p.status === "coming-soon" ? "Coming soon" : `Lv ${p.difficulty}`,
+          tag: p.status === "coming-soon" ? null : `Lv ${p.difficulty}`,
           tone: p.status === "coming-soon" ? "hard" : "easy",
         }));
   // No filler when there's nothing real to show, so the empty message appears.
   const items = realItems.length > 0 ? withFiller(realItems) : realItems;
+  const n = items.length;
+  const index = n > 0 ? mod(pos, n) : 0;
 
   // Both are null on a filler row.
   const project = screen === "songs" ? (projects[index] ?? null) : null;
@@ -153,8 +196,8 @@ export default function Menu({ projects }: { projects: Project[] }) {
       mounted.current = true;
       return;
     }
-    itemRefs.current[index]?.focus({ preventScroll: true });
-  }, [index, screen]);
+    selectedRef.current?.focus({ preventScroll: true });
+  }, [pos, screen]);
 
   // Coming back from a case study (/#projects/<id>) reopens the song list
   // on that song, like backing out of a song in the game.
@@ -163,7 +206,7 @@ export default function Menu({ projects }: { projects: Project[] }) {
     if (!match) return;
     const i = projects.findIndex((p) => p.id === decodeURIComponent(match[1]));
     setScreen("songs");
-    setIndex(Math.max(i, 0));
+    setPos(Math.max(i, 0));
     history.replaceState(null, "", window.location.pathname);
   }, []);
 
@@ -184,12 +227,12 @@ export default function Menu({ projects }: { projects: Project[] }) {
     return () => window.removeEventListener("pageshow", onShow);
   }, []);
 
-  // Remember where the wheel was, so the row that wraps from one end to the
-  // other can jump instead of sliding across the whole wheel.
-  const prevIndex = useRef(index);
+  // A new list's rows slide in once. After that, rows that join the strip as
+  // it moves just appear (off screen) instead of playing the entrance again.
   useEffect(() => {
-    prevIndex.current = index;
-  }, [index]);
+    const id = window.setTimeout(() => setSettled(screen), 900);
+    return () => window.clearTimeout(id);
+  }, [screen]);
 
   function go(url: string) {
     if (prefersReducedMotion()) {
@@ -209,7 +252,7 @@ export default function Menu({ projects }: { projects: Project[] }) {
     if (screen === "categories") {
       if (item.key === "projects") {
         setScreen("songs");
-        setIndex(0);
+        setPos(0);
       } else {
         go(`/${item.key}`);
       }
@@ -221,7 +264,7 @@ export default function Menu({ projects }: { projects: Project[] }) {
   function back() {
     if (screen === "songs" && !launching) {
       setScreen("categories");
-      setIndex(CATEGORIES.findIndex((c) => c.id === "projects"));
+      setPos(CATEGORIES.findIndex((c) => c.id === "projects"));
     }
   }
 
@@ -253,10 +296,10 @@ export default function Menu({ projects }: { projects: Project[] }) {
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setIndex((i) => (i + 1) % items.length);
+      setPos((p) => p + 1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setIndex((i) => (i - 1 + items.length) % items.length);
+      setPos((p) => p - 1);
     } else if (e.key === "ArrowRight") {
       e.preventDefault();
       activate(index);
@@ -266,16 +309,34 @@ export default function Menu({ projects }: { projects: Project[] }) {
   // Pointer: the first click or tap on a row selects it, the next one opens
   // it, like moving the wheel and then pressing start. Keyboard Enter/Space
   // has no pointerdown, so it always opens.
-  function onRowClick(i: number) {
+  function onRowClick(p: number) {
     if (!pressedSelected.current) {
       pressedSelected.current = true;
-      setIndex(i);
+      setPos(p);
       return;
     }
-    activate(i);
+    activate(mod(p, n));
   }
 
   const bpm = project?.bpm ?? category?.bpm ?? "???";
+
+  // What the preview lists for the selected row. Only the filler rows are
+  // "Coming soon"; your own categories that aren't open yet are "In progress".
+  const stats = project
+    ? {
+        difficulty: project.difficulty,
+        genre: project.tags.length > 0 ? project.tags.join(", ") : "—",
+        status: STATUS_LABEL[project.status],
+        chip: `chip-${project.status}`,
+      }
+    : category
+      ? {
+          difficulty: category.difficulty,
+          genre: category.genre,
+          status: category.ready ? "Open" : "In progress",
+          chip: category.ready ? "chip-cleared" : "chip-in-progress",
+        }
+      : { difficulty: null, genre: "???", status: "Coming soon", chip: "chip-coming-soon" };
 
   return (
     <div className="stage" ref={stageRef}>
@@ -297,72 +358,55 @@ export default function Menu({ projects }: { projects: Project[] }) {
         </header>
 
         <div className="body">
-          <aside className="preview" aria-live="polite">
-            <p className="bpm">
-              <span className="bpm-label">BPM</span>
-              <span className="bpm-value">{bpm}</span>
-            </p>
-            {/* Placeholder until there's real jacket art for each track. */}
-            <div className="jacket" aria-hidden="true">
-              <span className="jacket-placeholder">Jacket art</span>
+          <aside className="select-preview" aria-live="polite">
+            {/* Banner that runs off the left edge, a mirror of the wheel rows. */}
+            <div className="jacket-box">
+              <p className="jacket-stats">
+                <span className="stat">
+                  <span className="stat-label">STAGE</span>
+                  <span className="stat-value">1st</span>
+                </span>
+                <span className="stat">
+                  <span className="stat-label">SPEED</span>
+                  <span className="stat-value">{bpm} BPM</span>
+                </span>
+              </p>
+              {/* Placeholder until there's real jacket art for each track. */}
+              <div className="jacket-art" aria-hidden="true">
+                <span className="jacket-placeholder">Jacket art</span>
+              </div>
             </div>
 
-            {/* Keyed by selection so it re-mounts and plays its entrance each move. */}
-            <div className="meta" key={`${screen}-${index}`}>
-              {project && (
-                <>
-                  <h2 className="meta-title">{project.title}</h2>
-                  <p className="meta-sub">{project.artist}</p>
+            {/* Best score and stats sit together in the space below the jacket. */}
+            <div className="lower-preview">
+              <p className="best-score">
+                <span className="best-score-label">BEST SCORE</span>
+                <span className="best-score-value">00000000</span>
+              </p>
+              <div className="meta-panel">
+                {/* Keyed by selection so it re-mounts and plays its entrance each move. */}
+                <div className="meta" key={`${screen}-${index}`}>
+                  {/* The row already shows the name and blurb, so this is just stats. */}
                   <dl>
                     <dt>Difficulty</dt>
-                    <dd aria-label={`${project.difficulty} out of 10`}>
-                      <Diamonds level={project.difficulty} />
-                    </dd>
+                    {stats.difficulty === null ? (
+                      <dd aria-label="Unknown">
+                        <Diamonds level={0} />
+                      </dd>
+                    ) : (
+                      <dd aria-label={`${stats.difficulty} out of 10`}>
+                        <Diamonds level={stats.difficulty} />
+                      </dd>
+                    )}
+                    <dt>Genre</dt>
+                    <dd>{stats.genre}</dd>
                     <dt>Status</dt>
                     <dd>
-                      <span className={`chip chip-${project.status}`}>
-                        {STATUS_LABEL[project.status]}
-                      </span>
-                    </dd>
-                    {project.tags.length > 0 && (
-                      <>
-                        <dt>Genre</dt>
-                        <dd>{project.tags.join(", ")}</dd>
-                      </>
-                    )}
-                  </dl>
-                </>
-              )}
-
-              {category && (
-                <>
-                  <h2 className="meta-title">{category.label}</h2>
-                  <p className="meta-sub">{category.blurb}</p>
-                  <dl>
-                    {category.id === "projects" && (
-                      <>
-                        <dt>Tracks</dt>
-                        <dd>{projects.length}</dd>
-                      </>
-                    )}
-                    <dt>Status</dt>
-                    <dd>
-                      <span
-                        className={`chip ${category.ready ? "chip-cleared" : "chip-coming-soon"}`}
-                      >
-                        {category.ready ? "Open" : "Coming soon"}
-                      </span>
+                      <span className={`chip ${stats.chip}`}>{stats.status}</span>
                     </dd>
                   </dl>
-                </>
-              )}
-
-              {!project && !category && (
-                <>
-                  <h2 className="meta-title">COMING SOON</h2>
-                  <p className="meta-sub">Not unlocked yet</p>
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </aside>
 
@@ -371,51 +415,53 @@ export default function Menu({ projects }: { projects: Project[] }) {
           ) : (
             <div className="wheel">
               {/* Keyed by screen so the rows slide in again when switching lists. */}
-              <ul className="list" key={screen}>
-                {items.map((item, i) => {
-                  const offset = wheelOffset(i, index, items.length);
-                  const wrapped =
-                    Math.abs(offset - wheelOffset(i, prevIndex.current, items.length)) > 1;
+              <ul className={settled === screen ? "list" : "list fresh"} key={screen}>
+                {Array.from({ length: SPAN * 2 + 1 }, (_, s) => {
+                  const offset = s - SPAN;
+                  const p = pos + offset;
+                  const item = items[mod(p, n)];
+                  const selected = offset === 0;
+                  // The strip shows some items more than once. Only the copy
+                  // nearest the selection is real to keyboards and screen
+                  // readers; the rest are just scenery.
+                  const half = Math.floor(n / 2);
+                  const copy = offset < -half || offset > n - 1 - half;
                   return (
                   <li
-                    key={item.key}
-                    className={wrapped ? "wrapped" : undefined}
+                    // keyed by spot on the strip, so each row keeps its
+                    // element (and slides) as the wheel moves
+                    key={p}
+                    aria-hidden={copy || undefined}
+                    inert={copy || undefined}
                     // --o places the row on the wheel; --d (distance from the
                     // selected row) shortens rows to curve it
                     style={{ "--o": offset, "--d": Math.abs(offset) } as CSSProperties}
                   >
                     <button
                       type="button"
-                      ref={(el) => {
-                        itemRefs.current[i] = el;
-                      }}
+                      ref={selected ? selectedRef : undefined}
                       className={[
                         "row",
                         `tone-${item.tone}`,
-                        i === index && "selected",
-                        i === index && launching && "launching",
+                        selected && "selected",
+                        selected && launching && "launching",
                       ]
                         .filter(Boolean)
                         .join(" ")}
-                      tabIndex={i === index ? 0 : -1}
+                      tabIndex={selected ? 0 : -1}
                       aria-disabled={item.locked || undefined}
                       onPointerDown={() => {
-                        pressedSelected.current = i === index;
+                        pressedSelected.current = selected;
                       }}
-                      onFocus={() => setIndex(i)}
-                      onClick={() => onRowClick(i)}
+                      onFocus={() => setPos(p)}
+                      onClick={() => onRowClick(p)}
                     >
                       <span className="row-text">
                         <span className="row-label">{item.label}</span>
                         <span className="row-sub">{item.sub}</span>
                       </span>
-                      {item.tag && (
-                        <span
-                          className={item.locked ? "chip chip-coming-soon" : "chip chip-level"}
-                        >
-                          {item.tag}
-                        </span>
-                      )}
+                      {item.tag && <span className="chip chip-level">{item.tag}</span>}
+                      <span className="row-arrow" aria-hidden="true" />
                     </button>
                   </li>
                   );
@@ -427,9 +473,9 @@ export default function Menu({ projects }: { projects: Project[] }) {
 
         <p className="hint">
           <span className="hint-keys">
-             Move <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>
-            Select <kbd>Space</kbd>
-            Back <kbd>Esc</kbd>
+            <span>Move <kbd>↑</kbd><kbd>↓</kbd></span>
+            <span>Select <kbd>Space</kbd></span>
+            <span>Back <kbd>Esc</kbd></span>
           </span>
           <span className="hint-touch">Tap to pick, tap again to open</span>
         </p>

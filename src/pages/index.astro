@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import Menu from "../components/Menu.tsx";
+import StartScreen from "../components/StartScreen.tsx";
 import { getCollection } from "astro:content";
 
 const projects = (await getCollection("projects")).map((p) => ({
@@ -10,5 +11,13 @@ const projects = (await getCollection("projects")).map((p) => ({
 ---
 
 <Base>
+  <!-- Runs before first paint so the start screen never flashes when it's
+       skipped, which is only when coming back from a case study
+       (/#projects/<id>). Every other visit gets the start screen. -->
+  <script is:inline slot="head">
+    if (location.hash) document.documentElement.classList.add("skip-start");
+  </script>
+
   <Menu client:load projects={projects} />
+  <StartScreen client:load />
 </Base>
