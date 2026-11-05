@@ -22,10 +22,11 @@
     background-size: 56px 56px;
 }
 
-/* Teal bar with a yellow panel across the middle. Each end of the panel is cut
-   by a slant from top left to bottom right: on the right the teal holds the
-   timer and a thin yellow strip runs along the bottom; on the left the teal
-   holds the title (see .title-block) and the strip runs along the top. */
+/* Yellow bar with a teal slanted panel at each end. Each slant runs from top
+   left to bottom right: on the right the teal holds the timer and a thin
+   yellow strip runs along the bottom; on the left the teal holds the title
+   (see .title-block) and the strip runs along the top. The panels are
+   separate from the yellow so they can slide in over it (menu entrance). */
 .window-bar {
     /* wide enough that the timer always sits clear of the slant */
     --slant: min(340px, 40%);
@@ -43,7 +44,7 @@
     padding: var(--bar-py) var(--bar-px);
     /* keep the title and buttons clear of the timer's slant */
     padding-right: calc(var(--slant) + 40px);
-    background: var(--teal);
+    background: var(--yellow);
     border-bottom: 4px solid var(--ink);
 }
 
@@ -65,15 +66,14 @@
     z-index: -1;
 }
 
+/* the right-hand teal panel, above the bottom strip */
 .window-bar::before {
-    background: var(--yellow);
+    background: var(--teal);
     clip-path: polygon(
-        0 0,
         calc(100% - var(--slant) - var(--cut)) 0,
-        calc(100% - var(--slant)) calc(100% - var(--strip)),
+        100% 0,
         100% calc(100% - var(--strip)),
-        100% 100%,
-        0 100%
+        calc(100% - var(--slant)) calc(100% - var(--strip))
     );
 }
 
@@ -516,13 +516,24 @@
     padding: 0;
 }
 
+/* Each row is placed with one `translate`: down by --o rows from the middle,
+   and right by --shift to curve the wheel (the selected row, --d 0, sits
+   furthest left; each step away is pushed right by a growing amount, so the
+   left edges trace an arc and the far ends run off the screen). Only
+   translate animates, so the browser can move the rows without re-laying
+   them out each frame, and will-change keeps them on their own layers so the
+   text doesn't re-snap when a move ends. */
 .list > li {
+    --shift: calc(var(--d, 0) * 22px + var(--d, 0) * var(--d, 0) * 8px);
     position: absolute;
     top: 50%;
+    /* whole pixels, so rows don't sit on half pixels and blur */
+    top: round(50%, 1px);
     left: 0;
     right: 0;
-    translate: 0 calc(-50% + var(--o) * var(--pitch));
+    translate: var(--shift) calc(-50% + var(--o) * var(--pitch));
     transition: translate calc(var(--dur) * 1.2) var(--ease);
+    will-change: translate;
 }
 
 /* Each row is a banner with its top-left corner cut off. The button itself is
@@ -536,9 +547,8 @@
     --text: var(--green);
     position: relative;
     isolation: isolate;
-    /* Curved wheel: the selected row (--d 0) is longest, and each step away
-       is shorter by a growing amount, so the left edges trace an arc. */
-    width: max(30%, calc(min(100%, 1100px) - (var(--d, 0) * 22px + var(--d, 0) * var(--d, 0) * 8px)));
+    /* every row is the same length; the curve comes from --shift on the li */
+    width: min(100%, 1100px);
     height: var(--row-h);
     margin-left: auto;
     display: grid;
@@ -554,7 +564,6 @@
     border: 0;
     clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
     cursor: pointer;
-    transition: width calc(var(--dur) * 1.2) var(--ease);
 }
 
 /* runs off the right edge of the screen, so no outline on that side */
@@ -624,6 +633,9 @@
     display: grid;
     gap: 2px;
     min-width: 0;
+    /* the chip and arrows slide back left by --shift, so the text stops short
+       by the same amount and gets its "…" before running under them */
+    max-width: calc(100% - var(--shift, 0px));
 }
 
 .row-label,
@@ -673,6 +685,16 @@
 
 .row.selected .row-arrow {
     background-color: var(--text);
+}
+
+/* The curve pushes each row right by --shift (see .list > li), so the level
+   chip and arrows slide back left by the same amount, on the same timing, to
+   stay lined up at the screen's edge on every row, even mid-move. */
+.row .chip,
+.row-arrow {
+    translate: calc(var(--shift, 0px) * -1) 0;
+    transition: translate calc(var(--dur) * 1.2) var(--ease);
+    will-change: translate;
 }
 
 .empty {
@@ -734,8 +756,9 @@
         display: none;
     }
 
+    /* inline-block so it can slide in (see the menu entrance) */
     .hint-touch {
-        display: inline;
+        display: inline-block;
     }
 }
 
@@ -932,6 +955,49 @@
     }
 }
 
+/* Menu entrance, played once when the menu comes into view (the start
+   screen adds .menu-enter to <html> as it fades out). The menu sits empty for
+   a beat (the top bar plain yellow), then everything slides in at once: the
+   title's slanted panel and the pieces on the left from off the left edge,
+   the timer's slanted panel, the timer and the wheel from off the right, and
+   the bottom instructions from the left to the centre. transform is free on all of these
+   (the timer is centred with `translate`), so the slide doesn't fight their
+   own positioning. */
+.menu-enter {
+    /* the start screen's fade takes 400ms, so this leaves the empty menu on
+       screen for about half a second */
+    --enter-delay: 900ms;
+    --enter-time: 520ms;
+}
+
+.menu-enter .title-block,
+.menu-enter .jacket-box,
+.menu-enter .best-score,
+.menu-enter .meta-panel,
+.menu-enter .hint-keys,
+.menu-enter .hint-touch {
+    animation: enter-from-left var(--enter-time) var(--ease) var(--enter-delay) both;
+}
+
+.menu-enter .window-bar::before,
+.menu-enter .window-bar::after,
+.menu-enter .window-bar .badge,
+.menu-enter .wheel {
+    animation: enter-from-right var(--enter-time) var(--ease) var(--enter-delay) both;
+}
+
+@keyframes enter-from-left {
+    from {
+        transform: translateX(-100vw);
+    }
+}
+
+@keyframes enter-from-right {
+    from {
+        transform: translateX(100vw);
+    }
+}
+
 /* Reduced motion: nothing slides or flies, but the menu still feels
    alive. The selected row keeps a slow, gentle light and the preview fades. */
 @media (prefers-reduced-motion: reduce) {
@@ -942,7 +1008,17 @@
 
     .diamond,
     .list.fresh > li,
-    .stage .row.selected.launching {
+    .stage .row.selected.launching,
+    .menu-enter .window-bar::before,
+    .menu-enter .window-bar::after,
+    .menu-enter .title-block,
+    .menu-enter .window-bar .badge,
+    .menu-enter .jacket-box,
+    .menu-enter .best-score,
+    .menu-enter .meta-panel,
+    .menu-enter .wheel,
+    .menu-enter .hint-keys,
+    .menu-enter .hint-touch {
         animation: none;
     }
 

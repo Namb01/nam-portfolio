@@ -15,7 +15,8 @@ const projects = (await getCollection("projects")).map((p) => ({
        skipped, which is only when coming back from a case study
        (/#projects/<id>). Every other visit gets the start screen. -->
   <script is:inline slot="head">
-    if (location.hash) document.documentElement.classList.add("skip-start");
+    // with no start screen, the menu plays its entrance straight away
+    if (location.hash) document.documentElement.classList.add("skip-start", "menu-enter");
   </script>
 
   <Menu client:load projects={projects} />

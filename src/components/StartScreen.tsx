@@ -49,6 +49,8 @@ export default function StartScreen() {
     inserted.current = true;
     setPhase("coin");
     window.setTimeout(() => {
+      // the menu underneath slides its pieces in as this fades (menu.css)
+      document.documentElement.classList.add("menu-enter");
       if (prefersReducedMotion()) {
         setPhase("gone");
         return;
