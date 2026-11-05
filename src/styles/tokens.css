@@ -11,10 +11,11 @@
     --red: #E5262B;
     --yellow: #FFD23F;
 
-    /* Serpentine is commercial; Exo 2 is the free stand-in until it's licensed. */
-    --font-display: "Serpentine", "Exo 2", system-ui, sans-serif;
+    /* Orbitron (Google Fonts, loaded in Base.astro) for everything. It has no
+       italic, so the browser slants it where the styles ask for italic. */
+    --font-display: "Orbitron", system-ui, sans-serif;
     --font-mono: "YourMonoFont", ui-monospace, monospace;
-    --font-body: "YourBodyFont", system-ui, sans-serif;
+    --font-body: "Orbitron", system-ui, sans-serif;
 
     --space-1: 4px;
     --space-2: 8px;

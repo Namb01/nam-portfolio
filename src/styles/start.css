@@ -1,0 +1,245 @@
+/* Start screen. Covers the menu until the coin goes in. Uses tokens.css. */
+
+.start {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    /* equal space above and below the logo keeps it dead centre; the coin and
+       copyright sit at the bottom of the lower half */
+    grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+    justify-items: center;
+    /* same at top and bottom, so the middle row is the screen's middle */
+    padding-block: var(--space-5);
+    overflow: hidden;
+    font-family: var(--font-display);
+    color: var(--chrome);
+    cursor: pointer;
+    /* Where the sky meets the ground: the middle of the screen, right behind
+       the logo. The glow, the line and the point the stars fly out from
+       (StartScreen.tsx reads this) all sit here. */
+    --horizon: 50%;
+    /* a bright, white-hot glow on the horizon over a sky that deepens upwards
+       and a darker blue below, like a sunrise */
+    background:
+        radial-gradient(ellipse 45% 30% at 50% var(--horizon), rgba(255, 255, 255, 0.9), rgba(143, 227, 255, 0.4) 45%, transparent 75%),
+        linear-gradient(
+            to bottom,
+            #0b4fa8 0%,
+            #1b86d6 calc(var(--horizon) * 0.6),
+            #8fe3ff var(--horizon),
+            #1b86d6 var(--horizon),
+            #0a3d8c 100%
+        );
+}
+
+/* the horizon line itself, glowing */
+.start::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--horizon);
+    height: 3px;
+    translate: 0 -50%;
+    background: #ffffff;
+    box-shadow:
+        0 0 12px 3px rgba(190, 250, 255, 0.9),
+        0 0 40px 10px rgba(61, 227, 234, 0.5);
+}
+
+/* everything sits above the stars */
+.start > :not(.start-stars) {
+    position: relative;
+    z-index: 1;
+}
+
+/* the starfield canvas, drawn by StartScreen.tsx */
+.start-stars {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.skip-start .start {
+    display: none;
+}
+
+/* holds on black for a moment when the site loads, then fades in */
+.start::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: var(--ink);
+    animation: start-fade-in 900ms ease-out 900ms forwards;
+}
+
+@keyframes start-fade-in {
+    to {
+        opacity: 0;
+    }
+}
+
+/* and fades out into the menu once the coin is in */
+.start.leaving {
+    animation: start-fade-out 400ms ease-in forwards;
+}
+
+@keyframes start-fade-out {
+    to {
+        opacity: 0;
+    }
+}
+
+/* The logo: lime lettering with a thick ink outline, each line on its own
+   slanted plate (the wheel rows' navy-to-teal) with a yellow rim, like a
+   game's title logo. "Nam's Mix" gets a yellow plate; all the text is lime. Sizes are in
+   em of --size so the whole thing scales together. */
+.logo {
+    --size: clamp(1.6rem, 10vw, 7rem);
+    grid-row: 2;
+    margin: 0;
+    padding: 0 var(--space-4);
+    display: grid;
+    justify-items: center;
+    isolation: isolate;
+    font-style: italic;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--chrome);
+}
+
+.logo-line {
+    position: relative;
+    padding: 0.14em 0.4em;
+    -webkit-text-stroke: 0.14em var(--ink);
+    paint-order: stroke fill;
+}
+
+/* the plate behind each line */
+.logo-line::before {
+    content: "";
+    position: absolute;
+    inset: 0.08em -0.05em;
+    z-index: -1;
+    transform: skewX(-18deg);
+    background: linear-gradient(90deg, var(--horizon), var(--teal));
+    border: 0.06em solid var(--chrome);
+    box-shadow:
+        0 0 0 0.04em var(--ink),
+        0.1em 0.1em 0 var(--ink);
+}
+
+.logo-top {
+    justify-self: start;
+    font-size: calc(var(--size) * 0.82);
+}
+
+/* speed stripes trailing off the top plate */
+.logo-top::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    right: -1em;
+    width: 0.8em;
+    height: 50%;
+    z-index: -1;
+    transform: skewX(-18deg);
+    background: repeating-linear-gradient(90deg, var(--chrome) 0 0.12em, transparent 0.12em 0.28em);
+}
+
+.logo-main {
+    margin-top: -0.1em;
+    font-size: var(--size);
+}
+
+.logo-mix {
+    justify-self: end;
+    margin-top: -0.05em;
+    font-size: calc(var(--size) * 0.42);
+}
+
+.logo-mix::before {
+    background: var(--ink);
+    border-color: var(--chrome);
+}
+
+.start-foot {
+    grid-row: 3;
+    align-self: end;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+}
+
+/* INSERT COIN 0/1, blinking gently */
+.start-coin {
+    padding: 4px 12px;
+    font: inherit;
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(1.2rem, 3.2vw, 2rem);
+    letter-spacing: 0.08em;
+    color: var(--chrome);
+    -webkit-text-stroke: 6px var(--ink);
+    paint-order: stroke fill;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    animation: coin-blink 1.6s steps(1, end) infinite;
+}
+
+/* a hard arcade blink: on for most of the beat, off for the rest */
+@keyframes coin-blink {
+    65% {
+        opacity: 0;
+    }
+}
+
+.start-credit {
+    margin-left: 0.5em;
+    color: var(--yellow);
+}
+
+/* coin in: stop blinking and light the credit up */
+.start.coin .start-coin,
+.start.leaving .start-coin {
+    animation: none;
+}
+
+.start.coin .start-credit,
+.start.leaving .start-credit {
+    color: var(--lime);
+}
+
+.start-coin:focus-visible {
+    outline: 3px solid var(--chrome);
+    outline-offset: 4px;
+}
+
+.start-copy {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--chrome);
+    -webkit-text-stroke: 4px var(--ink);
+    paint-order: stroke fill;
+}
+
+/* Reduced motion: no fades, and a slower, softer blink. The stars hold
+   still (see StartScreen.tsx). */
+@media (prefers-reduced-motion: reduce) {
+    .start::after {
+        display: none;
+    }
+
+    .start-coin {
+        animation-duration: 3s;
+    }
+}
