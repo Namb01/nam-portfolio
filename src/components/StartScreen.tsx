@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import "../styles/start.css";
-import { enableSound, playEffect } from "../lib/sound";
+import { enableSound, playEffect, preloadEffect } from "../lib/sound";
 
 // Shown on every visit. index.astro skips it only when coming back from a
-// case study, by adding .skip-start before first paint.
+// game screen, by adding .skip-start before first paint.
 
 // How long "1/1" shows after the coin goes in, then how long the fade out takes.
 const COIN_MS = 500;
@@ -15,9 +15,17 @@ const COIN_SOUNDS = [
   "/sounds/edr-electronic-impact-hard-10018.mp3",
 ];
 
-// The menu's pieces slide in this long after the coin (COIN_MS, then the
-// --enter-delay in menu.css), so the first track waits until then.
-const MUSIC_DELAY_MS = COIN_MS + 900;
+// Called out as the menu appears, in the pause before its pieces slide in,
+// and how long it lasts (the file is about 1.9s).
+const SELECT_MUSIC_SOUND = "/sounds/Selectmusic.m4a";
+const SELECT_MUSIC_MS = 1900;
+
+// The menu sits empty this long before its pieces slide in (--enter-delay in
+// menu.css; keep the two the same).
+const ENTER_DELAY_MS = 1300;
+
+// The first track waits until the call-out has finished.
+const MUSIC_DELAY_MS = COIN_MS + SELECT_MUSIC_MS;
 
 // Starfield: how many stars, how fast they come at you (depth per second),
 // and their colours, mostly white with a few accents (aqua would vanish into
@@ -61,17 +69,21 @@ export default function StartScreen() {
     window.setTimeout(() => {
       // the menu underneath slides its pieces in as this fades (menu.css)
       document.documentElement.classList.add("menu-enter");
+      playEffect(SELECT_MUSIC_SOUND);
       setPhase("leaving");
       window.setTimeout(() => setPhase("gone"), FADE_MS);
     }, COIN_MS);
   }
 
-  // Skipped (back from a case study): the page hid it before paint, so just drop it.
+  // Skipped (back from a game screen): the page hid it before paint, so just drop it.
   useEffect(() => {
     if (document.documentElement.classList.contains("skip-start")) {
       setPhase("gone");
       // no coin, but the menu still slides in after its --enter-delay
-      enableSound(900);
+      enableSound(ENTER_DELAY_MS);
+    } else {
+      // loaded ahead, so the call-out isn't late when the coin goes in
+      preloadEffect(SELECT_MUSIC_SOUND);
     }
   }, []);
 

@@ -1,0 +1,65 @@
+---
+import Base from "../../layouts/Base.astro";
+import "../../styles/game.css";
+import { CATEGORIES } from "../../data/categories";
+
+// The game screen: every row on the Select Music wheel is a "song", and
+// picking one plays it here, at /play/<id>. For now it's just the stage, a
+// dark backdrop and player 1's four step arrows in the top left, ready for the
+// info to scroll up to them.
+export function getStaticPaths() {
+  return CATEGORIES.map((c) => ({
+    params: { id: c.id },
+    props: { title: c.label },
+  }));
+}
+
+type Props = { title: string };
+
+const { title } = Astro.props;
+const { id } = Astro.params;
+
+// left to right, like the pads: each is the up arrow turned to face its way
+const ARROWS = [
+  { dir: "left", turn: -90 },
+  { dir: "down", turn: 180 },
+  { dir: "up", turn: 0 },
+  { dir: "right", turn: 90 },
+];
+
+// a chunky arrow pointing up, in a 100 x 100 box: a wide head with notched
+// wings over a thick stem
+const ARROW =
+  "M50 6 L92 48 Q96 52 92 56 L84 64 Q80 68 76 64 L62 50 L62 90 Q62 96 56 96 " +
+  "L44 96 Q38 96 38 90 L38 50 L24 64 Q20 68 16 64 L8 56 Q4 52 8 48 Z";
+---
+
+<Base title={`${title} · Nam Bui`}>
+  <!-- data-back: Esc returns to the menu on this row -->
+  <main class="game" data-back={`/#${id}`}>
+    <h1 class="visually-hidden">{title}</h1>
+
+    <!-- Player 1's step arrows, where the notes will line up. -->
+    <div class="receptors p1" aria-hidden="true">
+      {
+        ARROWS.map(({ dir, turn }) => (
+          <svg class={`receptor receptor-${dir}`} viewBox="0 0 100 100">
+            <g transform={`rotate(${turn} 50 50)`}>
+              <path class="receptor-body" d={ARROW} />
+              <path class="receptor-inner" d={ARROW} transform="translate(50 50) scale(0.6) translate(-50 -50)" />
+            </g>
+          </svg>
+        ))
+      }
+    </div>
+  </main>
+
+  <script>
+    // Esc goes back to Select Music, on the row this song came from.
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const back = document.querySelector<HTMLElement>(".game")?.dataset.back;
+      if (back) window.location.href = back;
+    });
+  </script>
+</Base>
