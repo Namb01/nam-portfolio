@@ -2,23 +2,17 @@
 import Base from "../layouts/Base.astro";
 import Menu from "../components/Menu.tsx";
 import StartScreen from "../components/StartScreen.tsx";
-import { getCollection } from "astro:content";
-
-const projects = (await getCollection("projects")).map((p) => ({
-  id: p.id,
-  ...p.data,
-}));
 ---
 
 <Base>
   <!-- Runs before first paint so the start screen never flashes when it's
-       skipped, which is only when coming back from a case study
-       (/#projects/<id>). Every other visit gets the start screen. -->
+       skipped, which is only when coming back from a game screen
+       (/#<id>). Every other visit gets the start screen. -->
   <script is:inline slot="head">
     // with no start screen, the menu plays its entrance straight away
     if (location.hash) document.documentElement.classList.add("skip-start", "menu-enter");
   </script>
 
-  <Menu client:load projects={projects} />
+  <Menu client:load />
   <StartScreen client:load />
 </Base>

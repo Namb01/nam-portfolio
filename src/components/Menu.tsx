@@ -2,96 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import "../styles/menu.css";
 import { isMuted, playEffect, playPreview, preloadEffect, setMuted } from "../lib/sound";
-
-type Status = "cleared" | "in-progress" | "coming-soon";
-
-type Project = {
-  id: string;
-  title: string;
-  artist: string;
-  bpm: number;
-  difficulty: number;
-  status: Status;
-  tags: string[];
-};
-
-type Category = {
-  id: string;
-  label: string;
-  blurb: string;
-  ready: boolean; // false = can't be opened yet
-  href?: string; // opens this in a new tab instead of a page on the site
-  // just for show in the preview, like a song's stats
-  bpm: number;
-  difficulty: number;
-  genre: string;
-};
-
-// Order matches your list. Flip `ready` to true once the page exists.
-const CATEGORIES: Category[] = [
-  {
-    id: "about",
-    label: "ABOUT",
-    blurb: "Who's behind the screen",
-    ready: false,
-    bpm: 120,
-    difficulty: 2,
-    genre: "Profile",
-  },
-  {
-    id: "resume",
-    label: "RESUME",
-    blurb: "My experience at a glance",
-    ready: true,
-    // the PDF in public/
-    href: "/Nam_Bui_Resume.pdf",
-    bpm: 128,
-    difficulty: 4,
-    genre: "Career",
-  },
-  {
-    id: "projects",
-    label: "PROJECTS",
-    blurb: "Things I've built",
-    ready: true,
-    bpm: 150,
-    difficulty: 7,
-    genre: "Software",
-  },
-  {
-    id: "skills",
-    label: "SKILLS",
-    blurb: "Tools I've used in real projects",
-    ready: false,
-    bpm: 135,
-    difficulty: 5,
-    genre: "Toolbox",
-  },
-  {
-    id: "contact",
-    label: "CONTACT",
-    blurb: "Say hello",
-    ready: false,
-    bpm: 98,
-    difficulty: 1,
-    genre: "Social",
-  },
-];
+import Radar from "./Radar";
+import { CATEGORIES } from "../data/categories";
 
 // The header timer counts down from this, one step per second, and stops at 00.
 const TIMER_START = 99;
-
-const STATUS_LABEL: Record<Status, string> = {
-  cleared: "Cleared",
-  "in-progress": "In progress",
-  "coming-soon": "Coming soon",
-};
 
 // How long the "HERE WE GO!" wipe plays before the page changes.
 const LAUNCH_MS = 700;
 
 // Music that plays while a row is selected, by category id (files in
-// public/sounds). The projects track keeps playing inside the Projects list.
+// public/sounds).
 const PREVIEWS: Record<string, string> = {
   about: "/sounds/alex-morgan-grime-instrumental-601081.mp3",
   resume: "/sounds/ztmusic-ztmusic-midnight-love-drive-eurobeat-205498.mp3",
@@ -113,11 +34,10 @@ type Item = {
   label: string;
   sub: string;
   locked: boolean;
-  tag: string | null; // level chip on project rows
   tone: Tone;
 };
 
-// Locked "COMING SOON" rows pad each list out so the wheel looks full.
+// Locked "COMING SOON" rows pad the wheel out so it looks full.
 const MIN_ROWS = 10;
 
 function withFiller(items: Item[]): Item[] {
@@ -128,11 +48,15 @@ function withFiller(items: Item[]): Item[] {
     label: "COMING SOON",
     sub: "Not unlocked yet",
     locked: true,
-    tag: null,
     tone: (n < Math.ceil(count / 2) ? "medium" : "hard") as Tone,
   }));
   return [...items, ...filler];
 }
+
+// Every category is a song that opens its game screen; the filler after them.
+const ITEMS = withFiller(
+  CATEGORIES.map((c): Item => ({ key: c.id, label: c.label, sub: c.blurb, locked: false, tone: "easy" })),
+);
 
 // The wheel is an endless strip: `pos` counts up and down forever, and the
 // item at any spot is items[pos mod n]. Only SPAN spots either side of the
@@ -182,64 +106,27 @@ function Backdrop() {
   );
 }
 
-function Diamonds({ level }: { level: number }) {
-  return (
-    <span className="diamonds" aria-hidden="true">
-      {Array.from({ length: 10 }, (_, d) => (
-        <span
-          key={d}
-          className={d < level ? "diamond on" : "diamond"}
-          style={{ "--i": d } as CSSProperties}
-        >
-          {d < level ? "◆" : "◇"}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-export default function Menu({ projects }: { projects: Project[] }) {
-  const [screen, setScreen] = useState<"categories" | "songs">("categories");
+export default function Menu() {
   // place on the endless wheel; see SPAN
   const [pos, setPos] = useState(0);
   const [launching, setLaunching] = useState<string | null>(null);
   const [timer, setTimer] = useState(TIMER_START);
   // starts "on" for the server render; the saved choice is read after load
   const [muted, setMutedState] = useState(false);
-  // which list has finished sliding in, so rows added later don't replay it
-  const [settled, setSettled] = useState<string | null>(null);
+  // whether the rows have finished sliding in, so rows added later don't replay it
+  const [settled, setSettled] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
   const mounted = useRef(false);
   // Whether the row under the pointer was already selected when pressed.
   const pressedSelected = useRef(true);
 
-  const realItems: Item[] =
-    screen === "categories"
-      ? CATEGORIES.map((c) => ({
-          key: c.id,
-          label: c.label,
-          sub: c.blurb,
-          locked: !c.ready,
-          tag: null,
-          tone: "easy",
-        }))
-      : projects.map((p) => ({
-          key: p.id,
-          label: p.title,
-          sub: p.artist,
-          locked: p.status === "coming-soon",
-          tag: p.status === "coming-soon" ? null : `Lv ${p.difficulty}`,
-          tone: p.status === "coming-soon" ? "hard" : "easy",
-        }));
-  // No filler when there's nothing real to show, so the empty message appears.
-  const items = realItems.length > 0 ? withFiller(realItems) : realItems;
+  const items = ITEMS;
   const n = items.length;
-  const index = n > 0 ? mod(pos, n) : 0;
+  const index = mod(pos, n);
 
-  // Both are null on a filler row.
-  const project = screen === "songs" ? (projects[index] ?? null) : null;
-  const category = screen === "categories" ? (CATEGORIES[index] ?? null) : null;
+  // null on a filler row
+  const category = CATEGORIES[index] ?? null;
 
   // Listen on the window so arrow keys work before anything is clicked.
   // The ref always points at this render's handler, so the listener sees
@@ -260,16 +147,14 @@ export default function Menu({ projects }: { projects: Project[] }) {
       return;
     }
     selectedRef.current?.focus({ preventScroll: true });
-  }, [pos, screen]);
+  }, [pos]);
 
-  // Coming back from a case study (/#projects/<id>) reopens the song list
-  // on that song, like backing out of a song in the game.
+  // Coming back from a game screen (/#<id>) lands on the row it came from,
+  // like backing out of a song.
   useEffect(() => {
-    const match = window.location.hash.match(/^#projects\/(.+)$/);
-    if (!match) return;
-    const i = projects.findIndex((p) => p.id === decodeURIComponent(match[1]));
-    setScreen("songs");
-    setPos(Math.max(i, 0));
+    const hash = decodeURIComponent(window.location.hash.slice(1));
+    if (!hash) return;
+    setPos(Math.max(CATEGORIES.findIndex((c) => c.id === hash), 0));
     history.replaceState(null, "", window.location.pathname);
   }, []);
 
@@ -290,15 +175,15 @@ export default function Menu({ projects }: { projects: Project[] }) {
     return () => window.removeEventListener("pageshow", onShow);
   }, []);
 
-  // A new list's rows slide in once. After that, rows that join the strip as
-  // it moves just appear (off screen) instead of playing the entrance again.
+  // The rows slide in once. After that, rows that join the strip as it moves
+  // just appear (off screen) instead of playing the entrance again.
   useEffect(() => {
-    const id = window.setTimeout(() => setSettled(screen), 900);
+    const id = window.setTimeout(() => setSettled(true), 900);
     return () => window.clearTimeout(id);
-  }, [screen]);
+  }, []);
 
   // The selected row's music. Rows without a track (and the filler) are quiet.
-  const previewId = screen === "categories" ? CATEGORIES[index]?.id : "projects";
+  const previewId = category?.id;
   useEffect(() => {
     playPreview((previewId && PREVIEWS[previewId]) ?? null);
   }, [previewId]);
@@ -336,27 +221,8 @@ export default function Menu({ projects }: { projects: Project[] }) {
     const item = items[i];
     if (!item || item.locked || launching) return;
 
-    if (screen === "categories") {
-      const href = CATEGORIES[i]?.href;
-      if (item.key === "projects") {
-        setScreen("songs");
-        setPos(0);
-      } else if (href) {
-        // a file like the resume opens in its own tab, leaving the menu here
-        window.open(href, "_blank", "noopener");
-      } else {
-        go(`/${item.key}`);
-      }
-    } else {
-      go(`/projects/${item.key}`);
-    }
-  }
-
-  function back() {
-    if (screen === "songs" && !launching) {
-      setScreen("categories");
-      setPos(CATEGORIES.findIndex((c) => c.id === "projects"));
-    }
+    // every row is a song and opens its game screen
+    go(`/play/${item.key}`);
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -378,16 +244,10 @@ export default function Menu({ projects }: { projects: Project[] }) {
       activate(index);
       return;
     }
-    if (e.key === "ArrowLeft" || e.key === "Escape") {
-      e.preventDefault();
-      back();
-      return;
-    }
     if (e.key === "m" || e.key === "M") {
       toggleSound();
       return;
     }
-    if (items.length === 0) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -413,25 +273,9 @@ export default function Menu({ projects }: { projects: Project[] }) {
     activate(mod(p, n));
   }
 
-  const bpm = project?.bpm ?? category?.bpm ?? "???";
-
-  // What the preview lists for the selected row. Only the filler rows are
-  // "Coming soon"; your own categories that aren't open yet are "In progress".
-  const stats = project
-    ? {
-        difficulty: project.difficulty,
-        genre: project.tags.length > 0 ? project.tags.join(", ") : "—",
-        status: STATUS_LABEL[project.status],
-        chip: `chip-${project.status}`,
-      }
-    : category
-      ? {
-          difficulty: category.difficulty,
-          genre: category.genre,
-          status: category.ready ? "Open" : "In progress",
-          chip: category.ready ? "chip-cleared" : "chip-in-progress",
-        }
-      : { difficulty: null, genre: "???", status: "Coming soon", chip: "chip-coming-soon" };
+  const bpm = category?.bpm ?? "???";
+  // the selected row's stats; an empty radar on a filler row
+  const radar = category?.radar ?? null;
 
   return (
     <div className="stage" ref={stageRef}>
@@ -442,12 +286,6 @@ export default function Menu({ projects }: { projects: Project[] }) {
           <div className="title-block">
             <h1 className="title">Select Music</h1>
           </div>
-          {screen === "songs" && <span className="section">PROJECTS</span>}
-          {screen === "songs" && (
-            <button type="button" className="back" onClick={back}>
-              Back
-            </button>
-          )}
           {/* hidden from screen readers so it isn't announced every second */}
           <span className="badge timer" aria-hidden="true">
             {String(timer).padStart(2, "0")}
@@ -461,58 +299,36 @@ export default function Menu({ projects }: { projects: Project[] }) {
               <p className="jacket-stats">
                 <span className="stat">
                   <span className="stat-label">STAGE</span>
-                  <span className="stat-value">1st</span>
+                  <span className="stat-value"> 1ST</span>
                 </span>
                 <span className="stat">
                   <span className="stat-label">SPEED</span>
                   <span className="stat-value">{bpm} BPM</span>
                 </span>
               </p>
-              {/* Placeholder until there's real jacket art for each track. */}
+              {/* The row's art, or a placeholder until it has some. */}
               <div className="jacket-art" aria-hidden="true">
-                <span className="jacket-placeholder">Jacket art</span>
+                {category?.jacket ? (
+                  <img className="jacket-image" src={category.jacket} alt="" />
+                ) : (
+                  <span className="jacket-placeholder">Jacket art</span>
+                )}
               </div>
-            </div>
-
-            {/* Best score and stats sit together in the space below the jacket. */}
-            <div className="lower-preview">
               <p className="best-score">
                 <span className="best-score-label">BEST SCORE</span>
                 <span className="best-score-value">00000000</span>
               </p>
-              <div className="meta-panel">
-                {/* Keyed by selection so it re-mounts and plays its entrance each move. */}
-                <div className="meta" key={`${screen}-${index}`}>
-                  {/* The row already shows the name and blurb, so this is just stats. */}
-                  <dl>
-                    <dt>Difficulty</dt>
-                    {stats.difficulty === null ? (
-                      <dd aria-label="Unknown">
-                        <Diamonds level={0} />
-                      </dd>
-                    ) : (
-                      <dd aria-label={`${stats.difficulty} out of 10`}>
-                        <Diamonds level={stats.difficulty} />
-                      </dd>
-                    )}
-                    <dt>Genre</dt>
-                    <dd>{stats.genre}</dd>
-                    <dt>Status</dt>
-                    <dd>
-                      <span className={`chip ${stats.chip}`}>{stats.status}</span>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
+            </div>
+
+            {/* The stats radar fills the space below the jacket. Not keyed, so
+                it stays put and its shape morphs between rows. */}
+            <div className="lower-preview">
+              <Radar stats={radar} />
             </div>
           </aside>
 
-          {items.length === 0 ? (
-            <p className="empty">No tracks yet. Add a file to src/content/projects.</p>
-          ) : (
-            <div className="wheel">
-              {/* Keyed by screen so the rows slide in again when switching lists. */}
-              <ul className={settled === screen ? "list" : "list fresh"} key={screen}>
+          <div className="wheel">
+              <ul className={settled ? "list" : "list fresh"}>
                 {Array.from({ length: SPAN * 2 + 1 }, (_, s) => {
                   const offset = s - SPAN;
                   const p = pos + offset;
@@ -557,22 +373,19 @@ export default function Menu({ projects }: { projects: Project[] }) {
                         <span className="row-label">{item.label}</span>
                         <span className="row-sub">{item.sub}</span>
                       </span>
-                      {item.tag && <span className="chip chip-level">{item.tag}</span>}
                       <span className="row-arrow" aria-hidden="true" />
                     </button>
                   </li>
                   );
                 })}
               </ul>
-            </div>
-          )}
+          </div>
         </div>
 
         <p className="hint">
           <span className="hint-keys">
             <span>Move <kbd>↑</kbd><kbd>↓</kbd></span>
             <span>Select <kbd>Space</kbd></span>
-            <span>Back <kbd>Esc</kbd></span>
           </span>
           <span className="hint-touch">Tap to pick, tap again to open</span>
           <button

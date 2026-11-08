@@ -82,7 +82,7 @@
     border-bottom: 4px solid var(--ink);
 }
 
-/* The timer (or a case study's difficulty badge) sits in the middle of the
+/* The timer sits in the middle of the
    teal area. That area is slant + cut wide at the top and slant wide at the
    strip, so slant + cut/2 across on average, and it ends at the strip. */
 .window-bar .badge {
@@ -179,17 +179,6 @@
     paint-order: stroke fill;
 }
 
-/* Sizes are set explicitly: Back is a <button> in the menu but an <a> on case
-   study pages, and buttons don't inherit the page's font size. */
-.section {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 800;
-    font-size: 1.1rem;
-    line-height: 1.2;
-    color: var(--navy);
-}
-
 .badge {
     min-width: 3.4rem;
     text-align: center;
@@ -207,30 +196,6 @@
     min-width: 5rem;
     font-size: clamp(1.8rem, 4vw, 2.8rem);
     line-height: 1;
-}
-
-.back {
-    display: inline-block;
-    padding: 4px 14px;
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 800;
-    font-size: 1rem;
-    line-height: 1.2;
-    background: var(--chrome);
-    color: var(--ink);
-    border: 3px solid var(--ink);
-    box-shadow: 3px 3px 0 var(--ink);
-    cursor: pointer;
-}
-
-.back:hover {
-    background: var(--aqua);
-}
-
-.back:focus-visible {
-    outline: 3px solid var(--pink);
-    outline-offset: 2px;
 }
 
 /* ---------- body layout ---------- */
@@ -317,8 +282,9 @@
 }
 
 /* the jacket art itself, a wide banner like the game's */
+/* a little wider than 2:1, to leave the radar more room below */
 .jacket-art {
-    aspect-ratio: 2 / 1;
+    aspect-ratio: 12 / 5;
     display: grid;
     place-items: center;
     overflow: hidden;
@@ -331,16 +297,19 @@
 
 /* Best score and the stats box, kept together in the middle of the space
    left below the jacket. */
+/* fills the rest of the column under the jacket, so the radar can grow
+   into whatever room there is */
 .lower-preview {
-    align-self: center;
+    min-height: 0;
     display: grid;
-    gap: var(--space-2);
+    grid-template-rows: minmax(0, 1fr);
 }
 
 /* Lines up with the jacket art and the stats: from the page margin to where
    the banners' right padding starts. */
+/* inside the jacket box, right under the art */
 .best-score {
-    margin: 0 calc(var(--space-4) + 4px) 0 var(--pad);
+    margin: 0;
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -367,84 +336,75 @@
     paint-order: stroke fill;
 }
 
-/* The stats box: the same banner shape as the jacket, also running off the
-   left edge, but chrome and with the bottom-right corner cut instead. */
-.meta-panel {
-    --cut: 22px;
-    --line: 4px;
-    position: relative;
-    isolation: isolate;
-    /* stats fill the box, lined up with the jacket art above */
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    padding: var(--space-3) calc(var(--space-4) + var(--line)) var(--space-3) var(--pad);
-    color: var(--ink);
-    background: var(--ink);
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
+/* ---------- stats radar (Radar.tsx) ---------- */
+
+/* as big as the space under the jacket allows (up to a point) */
+.radar {
+    display: block;
+    width: auto;
+    height: 100%;
+    max-height: 320px;
+    min-height: 0;
+    max-width: calc(100% - var(--pad) - var(--space-4) - 4px);
+    /* towards the wheel, its right edge lined up with the jacket art's */
+    justify-self: end;
+    margin-left: var(--pad);
+    margin-right: calc(var(--space-4) + 4px);
+    aspect-ratio: 380 / 222;
+    overflow: visible;
 }
 
-.meta-panel::before {
-    content: "";
-    position: absolute;
-    inset: var(--line) var(--line) var(--line) 0;
-    z-index: -1;
-    background: var(--chrome);
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut) + 2px), calc(100% - var(--cut) + 2px) 100%, 0 100%);
+/* a dark teal disc with lighter rings, a pentagon frame, and spokes */
+.radar-disc {
+    fill: #0a5f6b;
+    stroke: var(--aqua);
+    stroke-width: 3;
 }
 
-
-/* ---------- case study preview panel ---------- */
-
-.preview {
-    display: grid;
-    align-content: start;
-    gap: var(--space-3);
-    padding: var(--space-3);
-    background: var(--chrome);
-    color: var(--ink);
-    border: 4px solid var(--ink);
-    box-shadow: 5px 5px 0 var(--ink);
+.radar-ring {
+    fill: none;
+    stroke: rgba(61, 227, 234, 0.25);
+    stroke-width: 6;
 }
 
-/* BPM readout above the jacket */
-.bpm {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
-    margin: 0;
-    padding: 4px 12px;
-    background: var(--navy);
-    border: 3px solid var(--ink);
+.radar-frame,
+.radar-axis {
+    fill: none;
+    stroke: rgba(61, 227, 234, 0.55);
+    stroke-width: 1.5;
+}
+
+/* the stats shape, morphed by Radar.tsx */
+.radar-shape {
+    fill: rgba(61, 227, 234, 0.55);
+    stroke: #b8fbff;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+}
+
+/* the names around the disc, white with an ink outline so they read on the
+   teal background */
+.radar-label {
     font-family: var(--font-display);
     font-style: italic;
     font-weight: 900;
-}
-
-.bpm-label {
-    font-size: 0.9rem;
-    color: var(--aqua);
-}
-
-.bpm-value {
-    font-size: 1.8rem;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    color: var(--lime);
-    -webkit-text-stroke: 5px var(--ink);
+    font-size: 14px;
+    dominant-baseline: middle;
+    fill: var(--chrome);
+    stroke: var(--ink);
+    stroke-width: 4px;
+    stroke-linejoin: round;
     paint-order: stroke fill;
 }
 
-/* wide banner, like the game's song banners */
-.jacket {
-    aspect-ratio: 2 / 1;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    background-color: var(--pink);
-    /* halftone dots */
-    background-image: radial-gradient(var(--peach) 2.5px, transparent 3px);
-    background-size: 14px 14px;
-    border: 4px solid var(--ink);
+/* ---------- jacket art ---------- */
+
+/* fills the frame; art in a different shape is cropped at the sides */
+.jacket-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .jacket-placeholder {
@@ -456,74 +416,6 @@
     color: var(--ink);
     background: var(--chrome);
     border: 3px dashed var(--ink);
-}
-
-.meta-sub {
-    margin: 2px 0 var(--space-3);
-    color: var(--navy);
-}
-
-.meta dl {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 6px var(--space-3);
-    margin: 0;
-    align-items: center;
-}
-
-.meta dt {
-    font-weight: 700;
-    color: var(--navy);
-}
-
-.meta dd {
-    margin: 0;
-    font-weight: 700;
-}
-
-.diamonds {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 1px;
-    font-size: 0.8rem;
-}
-
-.diamond {
-    display: inline-block;
-}
-
-.diamond.on {
-    color: var(--pink);
-    -webkit-text-stroke: 1px var(--ink);
-}
-
-/* ---------- chips (status / level tags) ---------- */
-
-.chip {
-    display: inline-block;
-    padding: 1px 8px;
-    font-size: 0.85rem;
-    font-weight: 800;
-    white-space: nowrap;
-    border: 2px solid var(--ink);
-    color: var(--ink);
-}
-
-.chip-cleared {
-    background: var(--lime);
-}
-
-.chip-in-progress {
-    background: var(--peach);
-}
-
-.chip-level {
-    background: var(--aqua);
-}
-
-.chip-coming-soon {
-    background: var(--red);
-    color: var(--chrome);
 }
 
 /* ---------- song list ---------- */
@@ -720,22 +612,13 @@
     background-color: var(--text);
 }
 
-/* The curve pushes each row right by --shift (see .list > li), so the level
-   chip and arrows slide back left by the same amount, on the same timing, to
-   stay lined up at the screen's edge on every row, even mid-move. */
-.row .chip,
+/* The curve pushes each row right by --shift (see .list > li), so the arrows
+   slide back left by the same amount, on the same timing, to stay lined up at
+   the screen's edge on every row, even mid-move. */
 .row-arrow {
     translate: calc(var(--shift, 0px) * -1) 0;
     transition: translate calc(var(--dur) * 1.2) var(--ease);
     will-change: translate;
-}
-
-.empty {
-    align-self: start;
-    margin: 0;
-    padding: var(--space-3);
-    background: var(--navy);
-    border: 4px solid var(--ink);
 }
 
 /* ---------- controls hint ---------- */
@@ -851,13 +734,13 @@
         font-size: 1.5rem;
     }
 
-    .preview {
-        grid-template-columns: 128px 1fr;
-        align-items: center;
+    /* keep STAGE and SPEED each on one line */
+    .stat {
+        white-space: nowrap;
     }
 
-    .bpm {
-        grid-column: 1 / -1;
+    .stat-value {
+        font-size: 1.3rem;
     }
 
     /* full width, less the right margin; a smaller jacket leaves the wheel room */
@@ -893,30 +776,6 @@
 }
 
 /* ---------- motion ---------- */
-
-/* preview panel slides in on every move; diamonds fill one at a time */
-.meta {
-    animation: meta-in 260ms var(--ease) both;
-}
-
-@keyframes meta-in {
-    from {
-        opacity: 0;
-        transform: translateX(18px);
-    }
-}
-
-.diamond {
-    animation: diamond-in 180ms var(--ease) both;
-    animation-delay: calc(120ms + var(--i) * 35ms);
-}
-
-@keyframes diamond-in {
-    from {
-        opacity: 0;
-        transform: scale(0.2);
-    }
-}
 
 /* rows fly in from the right when a list opens */
 .list.fresh > li {
@@ -1011,33 +870,61 @@
 
 /* Menu entrance, played once when the menu comes into view (the start
    screen adds .menu-enter to <html> as it fades out). The menu sits empty for
-   a beat (the top bar plain yellow), then everything slides in at once: the
-   title's slanted panel and the pieces on the left from off the left edge,
-   the timer's slanted panel, the timer and the wheel from off the right, and
-   the bottom instructions from the left to the centre. transform is free on all of these
+   a beat (the top bar plain yellow), then the pieces slide in one after
+   another, each --stagger after the first: the top bar's slanted panels, the
+   title, the timer, the jacket and the wheel, the radar, then the bottom
+   instructions. The title and the pieces on the left come from off the left
+   edge, the timer and the wheel from off the right, and the bottom
+   instructions from the left to the centre. transform is free on all of these
    (the timer is centred with `translate`), so the slide doesn't fight their
    own positioning. */
 .menu-enter {
     /* the start screen's fade takes 400ms, so this leaves the empty menu on
-       screen for about half a second */
-    --enter-delay: 900ms;
+       screen for about 0.9s (StartScreen.tsx's ENTER_DELAY_MS matches it) */
+    --enter-delay: 1000ms;
     --enter-time: 520ms;
 }
 
 .menu-enter .title-block,
 .menu-enter .jacket-box,
-.menu-enter .best-score,
-.menu-enter .meta-panel,
+.menu-enter .radar,
 .menu-enter .hint-keys,
 .menu-enter .hint-touch {
-    animation: enter-from-left var(--enter-time) var(--ease) var(--enter-delay) both;
+    animation: enter-from-left var(--enter-time) var(--ease) calc(var(--enter-delay) + var(--stagger, 0ms)) both;
 }
 
 .menu-enter .window-bar::before,
 .menu-enter .window-bar::after,
 .menu-enter .window-bar .badge,
 .menu-enter .wheel {
-    animation: enter-from-right var(--enter-time) var(--ease) var(--enter-delay) both;
+    animation: enter-from-right var(--enter-time) var(--ease) calc(var(--enter-delay) + var(--stagger, 0ms)) both;
+}
+
+.menu-enter .title-block {
+    --stagger: 80ms;
+}
+
+.menu-enter .window-bar .badge {
+    --stagger: 160ms;
+}
+
+.menu-enter .jacket-box {
+    --stagger: 200ms;
+}
+
+/* the wheel has furthest to travel, so it takes a little longer */
+.menu-enter .wheel {
+    --stagger: 200ms;
+    animation-duration: 600ms;
+}
+
+.menu-enter .radar {
+    --stagger: 360ms;
+}
+
+.menu-enter .hint-keys,
+.menu-enter .hint-touch {
+    --stagger: 420ms;
 }
 
 @keyframes enter-from-left {
