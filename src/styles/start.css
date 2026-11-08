@@ -232,14 +232,3 @@
     paint-order: stroke fill;
 }
 
-/* Reduced motion: no fades, and a slower, softer blink. The stars hold
-   still (see StartScreen.tsx). */
-@media (prefers-reduced-motion: reduce) {
-    .start::after {
-        display: none;
-    }
-
-    .start-coin {
-        animation-duration: 3s;
-    }
-}

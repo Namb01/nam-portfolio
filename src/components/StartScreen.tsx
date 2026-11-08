@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "../styles/start.css";
+import { enableSound, playEffect } from "../lib/sound";
 
 // Shown on every visit. index.astro skips it only when coming back from a
 // case study, by adding .skip-start before first paint.
@@ -7,6 +8,16 @@ import "../styles/start.css";
 // How long "1/1" shows after the coin goes in, then how long the fade out takes.
 const COIN_MS = 500;
 const FADE_MS = 400;
+
+// Played together when the coin goes in (files in public/sounds).
+const COIN_SOUNDS = [
+  "/sounds/soundreality-ui-interface-sound-16-299042.mp3",
+  "/sounds/edr-electronic-impact-hard-10018.mp3",
+];
+
+// The menu's pieces slide in this long after the coin (COIN_MS, then the
+// --enter-delay in menu.css), so the first track waits until then.
+const MUSIC_DELAY_MS = COIN_MS + 900;
 
 // Starfield: how many stars, how fast they come at you (depth per second),
 // and their colours, mostly white with a few accents (aqua would vanish into
@@ -35,10 +46,6 @@ function spawnStar(z: number): Star {
 
 type Phase = "idle" | "coin" | "leaving" | "gone";
 
-function prefersReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 export default function StartScreen() {
   const [phase, setPhase] = useState<Phase>("idle");
   const inserted = useRef(false);
@@ -48,13 +55,12 @@ export default function StartScreen() {
     if (inserted.current) return;
     inserted.current = true;
     setPhase("coin");
+    for (const url of COIN_SOUNDS) playEffect(url);
+    // the menu's music comes in as its pieces slide in
+    enableSound(MUSIC_DELAY_MS);
     window.setTimeout(() => {
       // the menu underneath slides its pieces in as this fades (menu.css)
       document.documentElement.classList.add("menu-enter");
-      if (prefersReducedMotion()) {
-        setPhase("gone");
-        return;
-      }
       setPhase("leaving");
       window.setTimeout(() => setPhase("gone"), FADE_MS);
     }, COIN_MS);
@@ -62,17 +68,20 @@ export default function StartScreen() {
 
   // Skipped (back from a case study): the page hid it before paint, so just drop it.
   useEffect(() => {
-    if (document.documentElement.classList.contains("skip-start")) setPhase("gone");
+    if (document.documentElement.classList.contains("skip-start")) {
+      setPhase("gone");
+      // no coin, but the menu still slides in after its --enter-delay
+      enableSound(900);
+    }
   }, []);
 
   // Stars fly out from the middle towards you, leaving short streaks, so it
-  // feels like travelling through space. With reduced motion they hold still.
+  // feels like travelling through space.
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const still = prefersReducedMotion();
     const stars = Array.from({ length: STAR_COUNT }, () => spawnStar(Math.random()));
     let width = 0;
     let height = 0;
@@ -158,16 +167,12 @@ export default function StartScreen() {
       draw(dt);
       frame = requestAnimationFrame(tick);
     }
-    if (!still) frame = requestAnimationFrame(tick);
+    frame = requestAnimationFrame(tick);
 
-    const onResize = () => {
-      resize();
-      if (still) draw(0);
-    };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", resize);
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", resize);
     };
   }, []);
 

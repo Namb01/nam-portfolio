@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import "../styles/menu.css";
+import { isMuted, playEffect, playPreview, preloadEffect, setMuted } from "../lib/sound";
 
 type Status = "cleared" | "in-progress" | "coming-soon";
 
@@ -19,6 +20,7 @@ type Category = {
   label: string;
   blurb: string;
   ready: boolean; // false = can't be opened yet
+  href?: string; // opens this in a new tab instead of a page on the site
   // just for show in the preview, like a song's stats
   bpm: number;
   difficulty: number;
@@ -35,6 +37,17 @@ const CATEGORIES: Category[] = [
     bpm: 120,
     difficulty: 2,
     genre: "Profile",
+  },
+  {
+    id: "resume",
+    label: "RESUME",
+    blurb: "My experience at a glance",
+    ready: true,
+    // the PDF in public/
+    href: "/Nam_Bui_Resume.pdf",
+    bpm: 128,
+    difficulty: 4,
+    genre: "Career",
   },
   {
     id: "projects",
@@ -77,6 +90,20 @@ const STATUS_LABEL: Record<Status, string> = {
 // How long the "HERE WE GO!" wipe plays before the page changes.
 const LAUNCH_MS = 700;
 
+// Music that plays while a row is selected, by category id (files in
+// public/sounds). The projects track keeps playing inside the Projects list.
+const PREVIEWS: Record<string, string> = {
+  about: "/sounds/alex-morgan-grime-instrumental-601081.mp3",
+  resume: "/sounds/ztmusic-ztmusic-midnight-love-drive-eurobeat-205498.mp3",
+  projects: "/sounds/ztmusic-ztmusic-tokai-no-angel-eurobeat-256476.mp3",
+  skills: "/sounds/bombinsound-retro-funky-groove-version-2-lightwight-funk-622860.mp3",
+  contact: "/sounds/kulakovka-retro-music-624647.mp3",
+};
+
+// A quiet swoosh each time the wheel moves to another row.
+const SWOOSH = "/sounds/universfield-fast-swoosh-383967.mp3";
+const SWOOSH_VOLUME = 0.06;
+
 // Row text color, like the game's difficulty colors: green for your own
 // rows, yellow then red for the filler.
 type Tone = "easy" | "medium" | "hard";
@@ -117,8 +144,42 @@ function mod(a: number, n: number) {
   return ((a % n) + n) % n;
 }
 
-function prefersReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+// The menu's backdrop: a dark band that runs across the screen and steps up
+// on a slant, with soft dots inside it, like the art behind the game's menus.
+// Drawn in a 1600 x 900 box stretched to fill the screen, so the dots go a
+// little oval on wide screens, as they do in the game.
+const BAND =
+  "M -20 303 L 560 303 Q 600 303 625 270 L 815 58 Q 840 25 880 25 L 1620 25 " +
+  "L 1620 552 L 1260 552 Q 1220 552 1195 585 L 1020 785 Q 995 810 955 810 L -20 810 Z";
+
+// [x, y, radius] for each dot: two rows of big soft dots along the low end,
+// and two lines of small dots along the high end.
+const BAND_DOTS: [number, number, number][] = [
+  ...Array.from({ length: 9 }, (_, i): [number, number, number] => [70 + i * 125, 715, 58]),
+  ...Array.from({ length: 8 }, (_, i): [number, number, number] => [40 + i * 110, 565, 40]),
+  ...Array.from({ length: 24 }, (_, i): [number, number, number] => [930 + i * 28, 95, 9]),
+  ...Array.from({ length: 16 }, (_, i): [number, number, number] => [1140 + i * 30, 140, 10]),
+];
+
+function Backdrop() {
+  return (
+    <svg className="backdrop" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <clipPath id="backdrop-band">
+          <path d={BAND} />
+        </clipPath>
+      </defs>
+      {/* edges: a mid-teal rim outside a dark line, then the band over them */}
+      <path d={BAND} className="band-rim" vectorEffect="non-scaling-stroke" />
+      <path d={BAND} className="band-line" vectorEffect="non-scaling-stroke" />
+      <path d={BAND} className="band-fill" />
+      <g clipPath="url(#backdrop-band)" className="band-dots">
+        {BAND_DOTS.map(([cx, cy, r]) => (
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} />
+        ))}
+      </g>
+    </svg>
+  );
 }
 
 function Diamonds({ level }: { level: number }) {
@@ -143,6 +204,8 @@ export default function Menu({ projects }: { projects: Project[] }) {
   const [pos, setPos] = useState(0);
   const [launching, setLaunching] = useState<string | null>(null);
   const [timer, setTimer] = useState(TIMER_START);
+  // starts "on" for the server render; the saved choice is read after load
+  const [muted, setMutedState] = useState(false);
   // which list has finished sliding in, so rows added later don't replay it
   const [settled, setSettled] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -234,11 +297,35 @@ export default function Menu({ projects }: { projects: Project[] }) {
     return () => window.clearTimeout(id);
   }, [screen]);
 
-  function go(url: string) {
-    if (prefersReducedMotion()) {
-      window.location.href = url;
+  // The selected row's music. Rows without a track (and the filler) are quiet.
+  const previewId = screen === "categories" ? CATEGORIES[index]?.id : "projects";
+  useEffect(() => {
+    playPreview((previewId && PREVIEWS[previewId]) ?? null);
+  }, [previewId]);
+
+  useEffect(() => {
+    setMutedState(isMuted());
+    preloadEffect(SWOOSH);
+  }, []);
+
+  // Swoosh whenever the selected row changes, but not for the first row the
+  // page opens on.
+  const firstPos = useRef(true);
+  useEffect(() => {
+    if (firstPos.current) {
+      firstPos.current = false;
       return;
     }
+    playEffect(SWOOSH, SWOOSH_VOLUME);
+  }, [pos]);
+
+  function toggleSound() {
+    setMuted(!muted);
+    setMutedState(!muted);
+  }
+
+  function go(url: string) {
+    playPreview(null);
     setLaunching(url);
     window.setTimeout(() => {
       window.location.href = url;
@@ -250,9 +337,13 @@ export default function Menu({ projects }: { projects: Project[] }) {
     if (!item || item.locked || launching) return;
 
     if (screen === "categories") {
+      const href = CATEGORIES[i]?.href;
       if (item.key === "projects") {
         setScreen("songs");
         setPos(0);
+      } else if (href) {
+        // a file like the resume opens in its own tab, leaving the menu here
+        window.open(href, "_blank", "noopener");
       } else {
         go(`/${item.key}`);
       }
@@ -290,6 +381,10 @@ export default function Menu({ projects }: { projects: Project[] }) {
     if (e.key === "ArrowLeft" || e.key === "Escape") {
       e.preventDefault();
       back();
+      return;
+    }
+    if (e.key === "m" || e.key === "M") {
+      toggleSound();
       return;
     }
     if (items.length === 0) return;
@@ -341,6 +436,8 @@ export default function Menu({ projects }: { projects: Project[] }) {
   return (
     <div className="stage" ref={stageRef}>
       <div className="window">
+        <Backdrop />
+
         <header className="window-bar">
           <div className="title-block">
             <h1 className="title">Select Music</h1>
@@ -478,6 +575,15 @@ export default function Menu({ projects }: { projects: Project[] }) {
             <span>Back <kbd>Esc</kbd></span>
           </span>
           <span className="hint-touch">Tap to pick, tap again to open</span>
+          <button
+            type="button"
+            className="sound-toggle"
+            aria-pressed={!muted}
+            aria-label={muted ? "Turn music on" : "Turn music off"}
+            onClick={toggleSound}
+          >
+            ♪ {muted ? "OFF" : "ON"} <kbd>M</kbd>
+          </button>
         </p>
       </div>
 
