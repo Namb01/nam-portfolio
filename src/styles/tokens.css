@@ -9,7 +9,28 @@
     --pink: #FF4FA3;
     --peach: #FF9B5E;
     --red: #E5262B;
-    --yellow: #FFD23F;
+    --yellow: #FFE066;
+
+    /* Menu palette. The menu's colours all come from here (and the colours
+       above), so a whole new palette is just a new set of these values. */
+    --menu-bg: #1AA3B1;
+    --band-fill: var(--teal);
+    --band-rim: #108E9B;
+    --band-line: #064F5A;
+    --band-dots: rgba(61, 227, 234, 0.2);
+    --bar: var(--yellow);
+    --bar-edge: #EFB51C;
+    --bar-panel: var(--teal);
+    --row-from: #050C2E;
+    --row-to: #0F7F8A;
+    --row-hover-from: #0A1A55;
+    --row-hover-to: #17A3AD;
+    --row-yellow: var(--yellow);
+    --row-red: #FF4D4D;
+    --sel-from: #0A2BFF;
+    --sel-to: #2E9BFF;
+    --sel-text: #E6FBFF;
+    --sel-edge: var(--aqua);
 
     /* Orbitron (Google Fonts, loaded in Base.astro) for everything. It has no
        italic, so the browser slants it where the styles ask for italic. */
@@ -25,10 +46,4 @@
 
     --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --dur: 200ms;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    :root {
-        --dur: 0ms;
-    }
 }
