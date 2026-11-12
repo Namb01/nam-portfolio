@@ -56,6 +56,19 @@
     fill: var(--band-dots);
 }
 
+/* A fine grid of dots over the whole backdrop, like the game screen's. Same
+   layer as the backdrop but painted after it, so it sits over the band and
+   under everything else. */
+.window::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(var(--grid-dots) 1.6px, transparent 2px);
+    background-size: 22px 22px;
+}
+
 /* Yellow bar with a teal slanted panel at each end. Each slant runs from top
    left to bottom right: on the right the teal holds the timer and a thin
    yellow strip runs along the bottom; on the left the teal holds the title
@@ -791,83 +804,6 @@
     }
 }
 
-/* selected row flashes when chosen */
-.stage .row.selected.launching {
-    animation: flash 90ms steps(1) 6;
-}
-
-@keyframes flash {
-    50% {
-        background: var(--chrome);
-    }
-}
-
-/* "HERE WE GO!" wipe: a pink band and a navy band cross, then the text slams in */
-.go {
-    position: fixed;
-    inset: 0;
-    z-index: 10;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    pointer-events: all;
-}
-
-.go::before,
-.go::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 50%;
-    border-block: 6px solid var(--ink);
-}
-
-.go::before {
-    top: 0;
-    background-color: var(--pink);
-    background-image: radial-gradient(var(--peach) 3px, transparent 3.5px);
-    background-size: 18px 18px;
-    animation: wipe-left 300ms var(--ease) both;
-}
-
-.go::after {
-    bottom: 0;
-    background: var(--navy);
-    animation: wipe-right 300ms var(--ease) 60ms both;
-}
-
-@keyframes wipe-left {
-    from { transform: translateX(-100%); }
-}
-
-@keyframes wipe-right {
-    from { transform: translateX(100%); }
-}
-
-.go-text {
-    position: relative;
-    z-index: 1;
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 900;
-    font-size: clamp(2.5rem, 11vw, 7rem);
-    line-height: 1;
-    text-transform: uppercase;
-    color: var(--lime);
-    -webkit-text-stroke: 10px var(--ink);
-    paint-order: stroke fill;
-    text-shadow: 6px 6px 0 var(--ink);
-    animation: slam 320ms var(--ease) 220ms both;
-}
-
-@keyframes slam {
-    from {
-        opacity: 0;
-        transform: scale(2.4) rotate(-6deg);
-    }
-}
-
 /* Menu entrance, played once when the menu comes into view (the start
    screen adds .menu-enter to <html> as it fades out). The menu sits empty for
    a beat (the top bar plain yellow), then the pieces slide in one after
@@ -936,5 +872,83 @@
 @keyframes enter-from-right {
     from {
         transform: translateX(100vw);
+    }
+}
+
+/* Menu exit, when a row opens its game screen: the entrance in reverse. The
+   pieces leave in the opposite order (the bottom instructions first, the top
+   bar's slanted panels last), each back off the edge it came in from, picking
+   up speed as they go. The last one is gone at 900ms (LEAVE_MS in Menu.tsx);
+   then .fade-out takes the screen to the game screen's navy. These beat the
+   .menu-enter rules above, so the exit plays whether or not the entrance did. */
+.stage.leaving {
+    --leave-time: 420ms;
+    --ease-in: cubic-bezier(0.6, 0, 0.9, 0.4);
+}
+
+.stage.leaving .title-block,
+.stage.leaving .jacket-box,
+.stage.leaving .radar,
+.stage.leaving .hint-keys,
+.stage.leaving .hint-touch {
+    animation: leave-to-left var(--leave-time) var(--ease-in) var(--leave-stagger, 0ms) both;
+}
+
+.stage.leaving .window-bar::before,
+.stage.leaving .window-bar::after,
+.stage.leaving .window-bar .badge,
+.stage.leaving .wheel {
+    animation: leave-to-right var(--leave-time) var(--ease-in) var(--leave-stagger, 0ms) both;
+}
+
+/* the entrance's staggers, counted back from the end (420ms) */
+.stage.leaving .radar {
+    --leave-stagger: 60ms;
+}
+
+.stage.leaving .jacket-box,
+.stage.leaving .wheel {
+    --leave-stagger: 220ms;
+}
+
+.stage.leaving .window-bar .badge {
+    --leave-stagger: 260ms;
+}
+
+.stage.leaving .title-block {
+    --leave-stagger: 340ms;
+}
+
+.stage.leaving .window-bar::before,
+.stage.leaving .window-bar::after {
+    --leave-stagger: 420ms;
+}
+
+@keyframes leave-to-left {
+    to {
+        transform: translateX(-100vw);
+    }
+}
+
+@keyframes leave-to-right {
+    to {
+        transform: translateX(100vw);
+    }
+}
+
+/* Covers the emptied menu with the game screen's navy, which the game screen
+   then fades in from. Its delay and length come from Menu.tsx. */
+.fade-out {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: #040A1F;
+    pointer-events: all;
+    animation: fade-out-in var(--ease) both;
+}
+
+@keyframes fade-out-in {
+    from {
+        opacity: 0;
     }
 }

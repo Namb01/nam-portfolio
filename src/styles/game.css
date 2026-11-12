@@ -1,4 +1,4 @@
-/* The game screen (src/pages/play/[...song].astro). */
+/* The game screen (src/pages/play/[id].astro). */
 
 /* the page behind it too, so nothing teal shows while it loads */
 html:has(.game),
@@ -6,51 +6,990 @@ body:has(.game) {
     background: #040A1F;
 }
 
-/* A dark stage, much darker than the menu, so the arrows and whatever
-   scrolls up to them stand out: deep navy with a faint teal halftone. */
+/* A dark stage framed like a rhythm game mid-song: meters along the top,
+   two panels along the bottom (Back and the score; links to the other
+   pages), a
+   backdrop in the colours of the row's jacket art and player 1's lane
+   behind, and a page's own content in cards on top.
+   Three columns, the same as the meters across the top: player 1's meter,
+   the stage, player 2's meter. Player 1's arrows sit under their meter.
+   Scrolls if the content is taller than the screen (phones).
+   Layers: backdrop -1, lane (arrows, notes) 0, meters 1, content 2,
+   bottom panels 3. */
 .game {
+    /* space at the screen's sides */
+    --gutter: clamp(12px, 3vw, 40px);
+    /* the smallest a step arrow gets (on phones) */
+    --arrow-min: 52px;
     position: fixed;
     inset: 0;
-    overflow: hidden;
-    background-color: #040A1F;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    /* Rows: the meters, the main area, the bottom bar. The main area holds
+       the lane (arrows, notes) and the page's content, stacked in the one
+       row, so it's at least the rest of the screen and grows to fit content
+       taller than that, which then scrolls. */
+    grid-template-rows: auto 1fr auto;
+    /* so the backdrop (z-index -1) stays inside this screen */
+    isolation: isolate;
+    align-content: start;
+    column-gap: clamp(8px, 1.4vw, 20px);
+    padding-inline: var(--gutter);
+    font-family: var(--font-display);
+    color: var(--chrome);
+    /* the page's own dark base colour (THEMES in the page) */
+    background-color: var(--bd-bg, #040A1F);
     background-image: radial-gradient(rgba(61, 227, 234, 0.07) 1.6px, transparent 2px);
     background-size: 22px 22px;
+    /* fades in from the navy the menu faded out to (the page behind is the
+       same colour) */
+    animation: game-in 450ms ease-out both;
 }
 
-/* Player 1's four step arrows, along the top of the left side. */
-.receptors {
-    --arrow: clamp(52px, 6.5vw, 92px);
+@keyframes game-in {
+    from {
+        opacity: 0;
+    }
+}
+
+/* ---------- backdrop ---------- */
+
+/* Fills the screen behind everything and stays put when the page scrolls.
+   Flat, dark shapes (no glows): a slanted band with a rim and a stripe, the
+   page's own motif, halftone dots and sparkles. The colours are the --bd-*
+   variables, set per page from its jacket art (THEMES in the page). Kept
+   dim, so the lane and the cards read clearly over it; the .game dot grid
+   shows through. */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.bd-band {
+    fill: var(--bd-band);
+    opacity: 0.75;
+}
+
+.bd-band-rim {
+    fill: var(--bd-rim);
+    opacity: 0.55;
+}
+
+.bd-stripe {
+    fill: var(--bd-stripe);
+    opacity: 0.5;
+}
+
+.bd-dots-a {
+    color: var(--bd-dots-a);
+    opacity: 0.28;
+}
+
+.bd-dots-b {
+    color: var(--bd-dots-b);
+    opacity: 0.14;
+}
+
+/* the dots take their field's colour */
+#halftone circle {
+    fill: currentColor;
+}
+
+.bd-sparkles {
+    fill: var(--chrome);
+    opacity: 0.55;
+}
+
+/* about: light rays fanning out behind the band */
+.bd-rays {
+    fill: var(--bd-motif);
+    opacity: 0.13;
+}
+
+/* projects: thin diagonal lines over the band, and yellow stars */
+.bd-lines {
+    fill: var(--bd-motif);
+    opacity: 0.16;
+}
+
+.bd-stars {
+    fill: var(--yellow);
+    opacity: 0.75;
+}
+
+/* skills: rows of flat bubbles in three colours, each with a small shine */
+.bd-bubbles {
+    opacity: 0.38;
+}
+
+.bd-bubble-0 {
+    fill: #FF3E8A;
+}
+
+.bd-bubble-1 {
+    fill: #8A3CFF;
+}
+
+.bd-bubble-2 {
+    fill: #23C6B8;
+}
+
+.bd-bubbles .bd-shine {
+    fill: #FFFFFF;
+    opacity: 0.45;
+}
+
+/* contact: scan lines across the screen, a disc, and rings on the floor */
+.bd-scan {
+    color: var(--bd-motif);
+    opacity: 0.07;
+}
+
+#scanlines rect {
+    fill: currentColor;
+}
+
+.bd-rings ellipse {
+    fill: none;
+    stroke: var(--bd-motif);
+    stroke-width: 10;
+    opacity: 0.3;
+}
+
+.bd-rings .bd-disc {
+    fill: var(--bd-motif);
+    opacity: 0.22;
+}
+
+/* the arrow's <symbol>; takes no space */
+.defs {
     position: absolute;
-    top: clamp(16px, 5vh, 48px);
-    display: flex;
-    gap: calc(var(--arrow) * 0.08);
+    width: 0;
+    height: 0;
+    overflow: hidden;
 }
 
-.receptors.p1 {
-    left: clamp(16px, 6vw, 112px);
+/* ---------- top: life meters and stage ---------- */
+
+/* Player 1's meter, the stage, player 2's meter, on the page's own columns
+   (subgrid), so the arrows below can line up with player 1's meter. One hard
+   ink shadow under the lot, like the menu's panels. */
+.hud {
+    position: relative;
+    z-index: 1;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    padding-top: clamp(10px, 2.2vh, 22px);
+    filter: drop-shadow(3px 3px 0 var(--ink));
 }
 
-.receptor {
+/* A life meter: a teal frame with its inner end cut on a slant, around a
+   track of small segments, lit from the outer end up to --life. Player 2's
+   is the same meter mirrored, so both fill from the screen's edges and their
+   slants face the stage. */
+.gauge {
+    --height: clamp(22px, 3vw, 40px);
+    --rim: 4px;
+    /* how far the slant leans, per pixel of height */
+    --lean: 0.75;
+    /* one segment, gap included */
+    --seg: 8px;
+    height: var(--height);
+    padding: var(--rim);
+    background: var(--teal);
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--height) * var(--lean)) 100%, 0 100%);
+}
+
+.gauge-p2 {
+    transform: scaleX(-1);
+}
+
+.gauge-track {
+    position: relative;
     display: block;
-    width: var(--arrow);
-    height: var(--arrow);
-    overflow: visible;
+    height: 100%;
+    overflow: hidden;
+    clip-path: polygon(0 0, 100% 0, calc(100% - (var(--height) - var(--rim) * 2) * var(--lean)) 100%, 0 100%);
+    /* unlit segments */
+    background: repeating-linear-gradient(90deg, #12224E 0 calc(var(--seg) - 2px), #060E28 calc(var(--seg) - 2px) var(--seg));
 }
 
-/* Grey and empty-looking, like step arrows waiting for a note: a light grey
-   arrow with a thick ink outline, and a darker grey one set inside it. */
-.receptor-body {
-    fill: #8E96A3;
-    stroke: var(--ink);
-    stroke-width: 5;
-    stroke-linejoin: round;
+/* The lit part: aqua to lime segments with a lighter top half, and a white
+   edge where it ends. The segment gaps line up with the track's. */
+.gauge-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--life) * 100%);
+    overflow: hidden;
+    background:
+        repeating-linear-gradient(90deg, transparent 0 calc(var(--seg) - 2px), rgba(4, 10, 31, 0.85) calc(var(--seg) - 2px) var(--seg)),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 0 45%, transparent 45%),
+        linear-gradient(90deg, var(--aqua), var(--lime));
 }
 
-.receptor-inner {
-    fill: #4A515D;
-    stroke: #2A2F38;
-    stroke-width: 4;
-    stroke-linejoin: round;
+.gauge-fill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 3px;
+    background: #FFFFFF;
+}
+
+/* a soft light that runs along the lit segments now and then */
+.gauge-fill::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    animation: gauge-shine 2.8s linear infinite;
+}
+
+@keyframes gauge-shine {
+    from {
+        translate: -100% 0;
+    }
+    to {
+        translate: 400% 0;
+    }
+}
+
+/* The stage between the meters, on a slanted navy plate with a yellow rim,
+   like the menu's title. */
+.stage {
+    position: relative;
+    isolation: isolate;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    padding: 0.35em 1.1em;
+    font-size: clamp(0.9rem, 2vw, 1.75rem);
+    font-style: italic;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    -webkit-text-stroke: 4px var(--ink);
+    paint-order: stroke fill;
+}
+
+.stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transform: skewX(-16deg);
+    background: var(--navy);
+    border: 3px solid var(--yellow);
+    box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.stage-number {
+    font-size: 0.78em;
+    color: var(--lime);
+}
+
+.stage-word {
+    color: var(--chrome);
+}
+
+/* ---------- player 1's step arrows ---------- */
+
+/* The four arrows, a little below the meters and centred under player 1's,
+   spanning almost all of it, so they grow and shrink with the meter. On a
+   phone the meter is too narrow for four usable arrows, so they keep a
+   minimum size and start at its left edge instead of spilling off the
+   screen ("safe"). They and the notes are the backdrop: a page's content
+   sits on top of them (z-index 2). */
+.receptors {
+    position: relative;
+    z-index: 0;
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: safe center;
+    align-self: start;
+    display: flex;
+    gap: 1.2%;
+    width: 94%;
+    min-width: calc(var(--arrow-min) * 4 + 6px);
+    margin-top: clamp(12px, 3vh, 28px);
+}
+
+/* Square, a quarter of the row each; see-through, so whatever scrolls up
+   behind them still shows. Grey, so they look empty, the way step zones wait
+   for notes: the arrow's layers (outline, rim, three shades) as greys. */
+.receptor {
+    --arrow-0: #0B0B12;
+    --arrow-1: #D5DAE0;
+    --arrow-2: #4B525C;
+    --arrow-3: #68707B;
+    --arrow-4: #868E99;
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    aspect-ratio: 1;
+    height: auto;
+    opacity: 0.6;
+}
+
+/* ---------- player 1's lane: notes ---------- */
+
+/* A still snapshot of a song in progress, behind the page's content: notes
+   on their way up to the arrows. The same width and columns as the arrows;
+   it runs from the arrows to the bottom of the screen, behind the bottom
+   panels, so the notes aren't cut off above them. */
+.notes {
+    position: relative;
+    z-index: 0;
+    grid-column: 1;
+    grid-row: 2 / 4;
+    justify-self: safe center;
+    align-self: stretch;
+    width: 94%;
+    min-width: calc(var(--arrow-min) * 4 + 6px);
+    margin-top: clamp(12px, 3vh, 28px);
+    overflow: hidden;
+    pointer-events: none;
+    /* so everything in the lane can be sized from its width (cqw) */
+    container-type: inline-size;
+}
+
+/* One arrow: a quarter of the row less the gaps (1.2% each, as in
+   .receptors). Set on the lane's children, where cqw means the lane. */
+.notes > * {
+    --size: calc((100cqw - 3 * 1.2cqw) / 4);
+}
+
+/* Each note sits in its column (--lane) and --y arrow heights down, in full
+   colour. The colours are the arrow's three shades (dark to light); blue is
+   the arrow's own. */
+.note {
+    position: absolute;
+    top: calc(var(--y) * var(--size));
+    left: calc(var(--lane) * (var(--size) + 1.2cqw));
+    width: var(--size);
+    height: var(--size);
+    opacity: 0.9;
+}
+
+.note-pink {
+    --arrow-2: #B3206A;
+    --arrow-3: #E23A8C;
+    --arrow-4: #FF74B8;
+}
+
+.note-yellow {
+    --arrow-2: #C28400;
+    --arrow-3: #EDB21C;
+    --arrow-4: #FFDA57;
+}
+
+.note-green {
+    --arrow-2: #0E8A3C;
+    --arrow-3: #1FCB5E;
+    --arrow-4: #7BF0A0;
+}
+
+/* A freeze arrow's tail: a green bar from the middle of its note down
+   --hold arrow heights, behind the note, with an ink outline and a lighter
+   stripe down the middle. */
+.note-tail {
+    position: absolute;
+    top: calc((var(--y) + 0.5) * var(--size));
+    left: calc(var(--lane) * (var(--size) + 1.2cqw) + var(--size) * 0.2);
+    width: calc(var(--size) * 0.6);
+    height: calc(var(--hold) * var(--size));
+    box-sizing: border-box;
+    background: linear-gradient(90deg, #0E8A3C 0 22%, #1FCB5E 22% 40%, #7BF0A0 40% 60%, #1FCB5E 60% 78%, #0E8A3C 78%);
+    border: max(2px, 0.9cqw) solid var(--ink);
+    border-top: 0;
+    opacity: 0.9;
+}
+
+/* ---------- bottom: player 1's score, player 2's links ---------- */
+
+/* Two separate panels along the bottom of the screen, like the two players'
+   score boxes: player 1's in the bottom left corner (the score) and player
+   2's in the bottom right (links to the other pages). They touch the bottom
+   and sides of the screen. Each has a slanted tab sitting on top of it: the
+   difficulty over player 1's, Back over player 2's. They stay at the bottom
+   when the page scrolls. */
+.hud-bottom {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px clamp(12px, 1.8vw, 28px);
+    /* out to the screen's edges, past the gutters */
+    margin-inline: calc(var(--gutter) * -1);
+    font-style: italic;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+    /* only the panels and tabs take clicks; the gap lets them through */
+    pointer-events: none;
+}
+
+/* one player's side: the tab, then the panel under it */
+.side {
+    display: flex;
+    flex-direction: column;
+}
+
+.side-p1 {
+    align-items: flex-start;
+}
+
+.side-p2 {
+    align-items: flex-end;
+}
+
+/* A score panel: a teal frame around a dark fill, with its inner end cut on
+   a slant, like a meter turned upside down (wider at the bottom). Player
+   2's is the mirror image, so the slants face each other. */
+.score-panel {
+    --rim: 4px;
+    --slant: clamp(18px, 2.4vw, 34px);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1.3vw, 22px);
+    margin: 0;
+    padding: clamp(8px, 1.3vh, 13px) clamp(14px, 1.6vw, 24px);
+    background: var(--teal);
+    pointer-events: auto;
+}
+
+/* the dark fill, inside the rim */
+.score-panel::before {
+    content: "";
+    position: absolute;
+    inset: var(--rim);
+    z-index: -1;
+    background: #040A1F;
+}
+
+.score-panel-p1 {
+    padding-right: calc(var(--slant) + clamp(14px, 1.6vw, 24px));
+}
+
+.score-panel-p1,
+.score-panel-p1::before {
+    clip-path: polygon(0 0, calc(100% - var(--slant)) 0, 100% 100%, 0 100%);
+}
+
+.score-panel-p2 {
+    padding-left: calc(var(--slant) + clamp(14px, 1.6vw, 24px));
+}
+
+.score-panel-p2,
+.score-panel-p2::before {
+    clip-path: polygon(var(--slant) 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* A tab on top of a panel: a pink plate with an ink rim, flush with the
+   screen's edge and cut on a slant at its inner end, like the panel under
+   it. The difficulty on the left; Back, its mirror image, on the right. */
+.tab {
+    --rim: 3px;
+    --slant: clamp(12px, 1.5vw, 22px);
+    position: relative;
+    isolation: isolate;
+    padding: 0.55em 1.1em 0.5em;
+    font-size: clamp(0.7rem, 1.2vw, 1.05rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--chrome);
+    -webkit-text-stroke: 4px var(--ink);
+    paint-order: stroke fill;
+    background: var(--ink);
+    pointer-events: auto;
+}
+
+/* the pink fill, inside the rim (no rim along the bottom, where the tab
+   meets its panel) */
+.tab::before {
+    content: "";
+    position: absolute;
+    inset: var(--rim) var(--rim) 0;
+    z-index: -1;
+    background: var(--pink);
+}
+
+.difficulty {
+    padding-right: calc(var(--slant) + 1.1em);
+}
+
+.difficulty,
+.difficulty::before {
+    clip-path: polygon(0 0, calc(100% - var(--slant)) 0, 100% 100%, 0 100%);
+}
+
+.back {
+    padding-left: calc(var(--slant) + 1.1em);
+}
+
+.back,
+.back::before {
+    clip-path: polygon(var(--slant) 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Back lights up aqua under the pointer, and yellow with keyboard focus (an
+   outline would be cut off by the tab's shape) */
+.back:hover::before {
+    background: var(--aqua);
+}
+
+.back:focus-visible {
+    outline: none;
+}
+
+.back:focus-visible::before {
+    background: var(--yellow);
+}
+
+.score {
+    font-size: clamp(1.2rem, 2.5vw, 2.3rem);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+    color: var(--lime);
+    -webkit-text-stroke: 6px var(--ink);
+    paint-order: stroke fill;
+}
+
+/* Player 2's panel holds the links to the other pages, in the score's lime
+   with its ink outline, so it reads like player 2's score. The page you're
+   on is yellow and underlined. */
+.pages a {
+    padding: 0.45em 0.1em 0.3em;
+    font-size: clamp(0.72rem, 1.2vw, 1.15rem);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    color: var(--lime);
+    border-bottom: 3px solid transparent;
+    -webkit-text-stroke: 4px var(--ink);
+    paint-order: stroke fill;
+}
+
+.pages a:hover {
+    color: var(--aqua);
+}
+
+.pages a[aria-current="page"] {
+    color: var(--yellow);
+    border-bottom-color: var(--yellow);
+}
+
+.pages a:focus-visible {
+    outline: 3px solid var(--pink);
+    outline-offset: 2px;
+}
+
+/* From 900px down, where the two panels no longer fit side by side: a solid
+   strip across the bottom with two rows. The difficulty, the score and Back
+   on the first; the links spread across the second. The tabs and panels
+   lose their slants, and everything is a little smaller, so each row fits
+   on one line. */
+@media (max-width: 900px) {
+    .hud-bottom {
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 10px;
+        padding: 6px var(--gutter);
+        background: #040A1F;
+        border-top: 4px solid var(--teal);
+        box-shadow: 0 -4px 0 var(--ink);
+        pointer-events: auto;
+    }
+
+    .side-p1 {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        margin-right: auto;
+    }
+
+    /* Back joins the first row and the links take the second */
+    .side-p2 {
+        display: contents;
+    }
+
+    .pages {
+        width: 100%;
+    }
+
+    .tab,
+    .tab::before,
+    .score-panel,
+    .score-panel::before {
+        clip-path: none;
+    }
+
+    .tab {
+        padding: 0.5em 0.8em;
+        font-size: 0.64rem;
+    }
+
+    .tab::before {
+        inset: var(--rim);
+    }
+
+    /* the score sits straight on the strip */
+    .score-panel-p1 {
+        padding: 0;
+        background: none;
+    }
+
+    .score-panel-p1::before {
+        display: none;
+    }
+
+    .score {
+        font-size: 1.15rem;
+        letter-spacing: 0.02em;
+        -webkit-text-stroke-width: 4px;
+    }
+
+    .score-panel-p2 {
+        --rim: 3px;
+        justify-content: space-between;
+        gap: 0;
+        padding: 4px 10px;
+    }
+
+    .pages a {
+        padding: 0.6em 0 0.4em;
+        font-size: 0.64rem;
+        letter-spacing: 0.01em;
+        -webkit-text-stroke-width: 3px;
+    }
+}
+
+/* ---------- content cards ---------- */
+
+/* A page's content sits in cards over the lane. Nearly solid navy, so the
+   text reads clearly whatever is behind; a teal rim, an ink outline and a
+   hard shadow, like the menu's panels. */
+.card {
+    position: relative;
+    z-index: 2;
+    background: rgba(8, 20, 72, 0.94);
+    border: 3px solid var(--teal);
+    outline: 3px solid var(--ink);
+    box-shadow: 8px 8px 0 3px var(--ink);
+}
+
+/* The card's title, on a slanted navy plate with a yellow rim (like the
+   stage plate) sitting on the card's top edge. */
+.card-title {
+    position: absolute;
+    top: 0;
+    left: clamp(18px, 2.6vw, 40px);
+    translate: 0 -55%;
+    isolation: isolate;
+    margin: 0;
+    padding: 0.3em 0.9em;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(1.15rem, 2.2vw, 1.9rem);
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    color: var(--lime);
+    -webkit-text-stroke: 5px var(--ink);
+    paint-order: stroke fill;
+}
+
+.card-title::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transform: skewX(-16deg);
+    background: var(--navy);
+    border: 3px solid var(--yellow);
+    box-shadow:
+        inset 0 0 0 2px var(--ink),
+        4px 4px 0 var(--ink);
+}
+
+/* ---------- a page's main card ---------- */
+
+/* Each page has one main card. It spans the screen under the meters and
+   sits in the middle of the space above the bottom bar (at the top if it's
+   too tall to centre: "safe"). */
+.page-card {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
+    align-self: safe center;
+    width: min(100%, 1080px);
+    /* room above for the title plate */
+    margin-block: clamp(30px, 5vh, 44px) clamp(16px, 3vh, 28px);
+    padding: clamp(34px, 3.6vw, 52px) clamp(20px, 2.8vw, 40px) clamp(22px, 2.8vw, 40px);
+}
+
+/* Body text in cards uses the system's sans-serif, which reads far easier
+   in long text than Orbitron; headings and labels stay in the display font. */
+.card p,
+.card dd {
+    margin: 0 0 1em;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: clamp(0.98rem, 1.15vw, 1.12rem);
+    line-height: 1.65;
+    color: var(--chrome);
+}
+
+.card p:last-child {
+    margin-bottom: 0;
+}
+
+/* an opening line or two above a card's main content */
+.card .card-lead {
+    max-width: 62ch;
+    margin-bottom: 1.4em;
+}
+
+/* a small heading inside a card */
+.tile-title {
+    margin: 0 0 0.35em;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+    color: var(--yellow);
+}
+
+/* small labels in a row: tools, or where to find a project */
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 1em;
+    padding: 0;
+    list-style: none;
+}
+
+.card .chip {
+    padding: 0.35em 0.8em;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    background: var(--aqua);
+    border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+}
+
+/* phones: the card starts right under the meters */
+@media (max-width: 760px) {
+    .page-card {
+        align-self: start;
+    }
+}
+
+/* ---------- About page ---------- */
+
+/* the write-up on the left and the headshot on the right, sharing the card */
+.about-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(200px, 26%, 300px);
+    align-items: center;
+    gap: clamp(20px, 3vw, 44px);
+}
+
+/* the headshot, on the right, in a chrome frame with a hard ink shadow */
+.about-photo {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    border: 4px solid var(--chrome);
+    outline: 3px solid var(--ink);
+    box-shadow: 5px 5px 0 3px var(--ink);
+    background: var(--navy);
+}
+
+.about-photo img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+}
+
+.about-text {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+}
+
+/* phones: the card stacks, a smaller photo on top and the write-up below */
+@media (max-width: 760px) {
+    .about-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .about-photo {
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: center;
+        width: min(60%, 220px);
+    }
+
+    .about-text {
+        grid-row: 2;
+    }
+}
+
+/* ---------- Projects page ---------- */
+
+/* three project tiles side by side; one column on phones */
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(16px, 2.2vw, 30px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* the links sit at the bottom of every tile, however long its text */
+.tile .chips {
+    margin: auto 0 0;
+    padding-top: 0.4em;
+}
+
+/* where a screenshot goes: halftone dots, like the menu's jacket placeholder */
+.tile-shot {
+    aspect-ratio: 16 / 9;
+    display: grid;
+    place-items: center;
+    margin-bottom: 0.9em;
+    background-color: var(--teal);
+    background-image: radial-gradient(rgba(61, 227, 234, 0.45) 2.5px, transparent 3px);
+    background-size: 14px 14px;
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+}
+
+.tile-shot span {
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-style: italic;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--chrome);
+    border: 2px dashed var(--ink);
+}
+
+/* the stack, under the project's name */
+.card .tile-stack {
+    margin-bottom: 0.6em;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+    color: var(--aqua);
+}
+
+@media (max-width: 760px) {
+    .tiles {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---------- Skills page ---------- */
+
+/* three groups side by side, with a rule between them; stacked on phones */
+.groups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(16px, 2.4vw, 32px);
+}
+
+.group {
+    min-width: 0;
+    padding-left: clamp(12px, 1.4vw, 20px);
+    border-left: 3px solid var(--teal);
+}
+
+.group .tile-title {
+    margin-bottom: 0.7em;
+}
+
+@media (max-width: 760px) {
+    .groups {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---------- Contact page ---------- */
+
+/* narrower than the other cards: it holds much less */
+.contact-card {
+    width: min(100%, 720px);
+}
+
+.contacts {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+}
+
+/* one way to get in touch: its name, then the address */
+.contact {
+    display: grid;
+    grid-template-columns: clamp(90px, 22%, 150px) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(4, 10, 31, 0.6);
+    border: 2px solid var(--teal);
+}
+
+.contact dt {
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(0.85rem, 1.2vw, 1rem);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--yellow);
+}
+
+.card .contact dd {
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 
 .visually-hidden {

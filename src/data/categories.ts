@@ -1,12 +1,15 @@
 import type { RadarStats } from "../components/Radar";
 
 // The rows on the Select Music wheel. Each one is a "song": picking it opens
-// its game screen at /play/<id>.
+// its game screen at /play/<id>, unless it has an `href`, which opens that
+// file in a new tab instead (the resume).
 
 export type Category = {
   id: string;
   label: string;
   blurb: string;
+  // a file in public/ to open in a new tab instead of a game screen
+  href?: string;
   // jacket art in public/ (1200 x 500 is ideal); without it, a placeholder
   jacket?: string;
   // just for show in the preview, like a song's stats
@@ -27,6 +30,8 @@ export const CATEGORIES: Category[] = [
   {
     id: "resume",
     label: "RESUME",
+    href: "/Nam_Bui_Resume.pdf",
+    jacket: "/jackets/resume.webp",
     blurb: "My experience at a glance",
     bpm: 153,
     radar: { frontend: 7, backend: 7, design: 5, scale: 6, polish: 8 },
@@ -34,6 +39,7 @@ export const CATEGORIES: Category[] = [
   {
     id: "projects",
     label: "PROJECTS",
+    jacket: "/jackets/projects.webp",
     blurb: "Things I've built",
     bpm: 161,
     radar: { frontend: 8, backend: 7, design: 6, scale: 6, polish: 7 },
@@ -41,6 +47,7 @@ export const CATEGORIES: Category[] = [
   {
     id: "skills",
     label: "SKILLS",
+    jacket: "/jackets/skills.webp",
     blurb: "Tools I've used in real projects",
     bpm: 122,
     radar: { frontend: 8, backend: 6, design: 5, scale: 5, polish: 3 },
@@ -48,6 +55,7 @@ export const CATEGORIES: Category[] = [
   {
     id: "contact",
     label: "CONTACT",
+    jacket: "/jackets/contact.webp",
     blurb: "Say hello",
     bpm: 80,
     radar: { frontend: 3, backend: 2, design: 6, scale: 2, polish: 9 },
