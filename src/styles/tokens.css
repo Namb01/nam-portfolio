@@ -18,6 +18,8 @@
     --band-rim: #108E9B;
     --band-line: #064F5A;
     --band-dots: rgba(61, 227, 234, 0.2);
+    /* the fine dot grid over the whole menu backdrop */
+    --grid-dots: rgba(232, 241, 244, 0.14);
     --bar: var(--yellow);
     --bar-edge: #EFB51C;
     --bar-panel: var(--teal);

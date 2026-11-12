@@ -19,17 +19,28 @@
        the logo. The glow, the line and the point the stars fly out from
        (StartScreen.tsx reads this) all sit here. */
     --horizon: 50%;
+    /* Sky colours, in the menu's teals (tokens.css): deep at the top, lighter
+       towards the horizon, a pale aqua glow on it, and the ground darkening
+       towards you. The first blue version, to swap back in:
+       top #0b4fa8, mid #1b86d6, glow #8fe3ff, ground #1b86d6 / #0a3d8c,
+       halo rgba(143, 227, 255, 0.4). */
+    --sky-top: #064F5A;
+    --sky-mid: #0B7C8C;
+    --sky-glow: #9FF6F8;
+    --ground-near: #0B7C8C;
+    --ground-far: #04363E;
+    --sky-halo: rgba(61, 227, 234, 0.4);
     /* a bright, white-hot glow on the horizon over a sky that deepens upwards
-       and a darker blue below, like a sunrise */
+       and a darker ground below, like a sunrise */
     background:
-        radial-gradient(ellipse 45% 30% at 50% var(--horizon), rgba(255, 255, 255, 0.9), rgba(143, 227, 255, 0.4) 45%, transparent 75%),
+        radial-gradient(ellipse 45% 30% at 50% var(--horizon), rgba(255, 255, 255, 0.9), var(--sky-halo) 45%, transparent 75%),
         linear-gradient(
             to bottom,
-            #0b4fa8 0%,
-            #1b86d6 calc(var(--horizon) * 0.6),
-            #8fe3ff var(--horizon),
-            #1b86d6 var(--horizon),
-            #0a3d8c 100%
+            var(--sky-top) 0%,
+            var(--sky-mid) calc(var(--horizon) * 0.6),
+            var(--sky-glow) var(--horizon),
+            var(--ground-near) var(--horizon),
+            var(--ground-far) 100%
         );
 }
 

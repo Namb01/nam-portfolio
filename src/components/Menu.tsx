@@ -8,8 +8,11 @@ import { CATEGORIES } from "../data/categories";
 // The header timer counts down from this, one step per second, and stops at 00.
 const TIMER_START = 99;
 
-// How long the "HERE WE GO!" wipe plays before the page changes.
-const LAUNCH_MS = 700;
+// Opening a row: the menu's pieces slide back out (LEAVE_MS, matching the
+// exit in menu.css), then the screen fades to the game screen's navy
+// (FADE_OUT_MS), then the game screen loads and fades in.
+const LEAVE_MS = 900;
+const FADE_OUT_MS = 350;
 
 // Music that plays while a row is selected, by category id (files in
 // public/sounds).
@@ -24,6 +27,12 @@ const PREVIEWS: Record<string, string> = {
 // A quiet swoosh each time the wheel moves to another row.
 const SWOOSH = "/sounds/universfield-fast-swoosh-383967.mp3";
 const SWOOSH_VOLUME = 0.06;
+
+// The interface sound for picking something on the wheel: any click or tap
+// on a row, and Enter, or Space on the selected one. The same
+// sound as the coin on the start screen, a little quieter.
+const CLICK = "/sounds/soundreality-ui-interface-sound-16-299042.mp3";
+const CLICK_VOLUME = 0.2;
 
 // Row text color, like the game's difficulty colors: green for your own
 // rows, yellow then red for the filler.
@@ -40,6 +49,7 @@ type Item = {
 // Locked "COMING SOON" rows pad the wheel out so it looks full.
 const MIN_ROWS = 10;
 
+// filler rows "COMING SOON"
 function withFiller(items: Item[]): Item[] {
   const count = Math.max(MIN_ROWS - items.length, 0);
   // first half yellow, second half red
@@ -111,6 +121,8 @@ export default function Menu() {
   const [pos, setPos] = useState(0);
   const [launching, setLaunching] = useState<string | null>(null);
   const [timer, setTimer] = useState(TIMER_START);
+  // whether the timer has started counting down (see below)
+  const [counting, setCounting] = useState(false);
   // starts "on" for the server render; the saved choice is read after load
   const [muted, setMutedState] = useState(false);
   // whether the rows have finished sliding in, so rows added later don't replay it
@@ -159,12 +171,13 @@ export default function Menu() {
   }, []);
 
   // Header timer, like the game's song-select countdown. Purely decorative:
-  // nothing happens when it runs out.
+  // nothing happens when it runs out. It holds at 99 until the timer has slid
+  // in with the rest of the menu (its onAnimationEnd below).
   useEffect(() => {
-    if (timer === 0) return;
+    if (!counting || timer === 0) return;
     const id = window.setTimeout(() => setTimer((t) => t - 1), 1000);
     return () => window.clearTimeout(id);
-  }, [timer]);
+  }, [timer, counting]);
 
   // The browser's back button can restore this page from cache mid-wipe.
   useEffect(() => {
@@ -191,6 +204,7 @@ export default function Menu() {
   useEffect(() => {
     setMutedState(isMuted());
     preloadEffect(SWOOSH);
+    preloadEffect(CLICK);
   }, []);
 
   // Swoosh whenever the selected row changes, but not for the first row the
@@ -214,15 +228,21 @@ export default function Menu() {
     setLaunching(url);
     window.setTimeout(() => {
       window.location.href = url;
-    }, LAUNCH_MS);
+    }, LEAVE_MS + FADE_OUT_MS);
   }
 
   function activate(i: number) {
     const item = items[i];
     if (!item || item.locked || launching) return;
 
-    // every row is a song and opens its game screen
-    go(`/play/${item.key}`);
+    // A file like the resume opens in its own tab, leaving the menu here;
+    // every other row is a song and opens its game screen.
+    const href = CATEGORIES[i]?.href;
+    if (href) {
+      window.open(href, "_blank", "noopener");
+    } else {
+      go(`/play/${item.key}`);
+    }
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -241,6 +261,7 @@ export default function Menu() {
     // is focused they act on the selected row.
     if ((e.key === "Enter" || e.key === " ") && target.tagName !== "BUTTON") {
       e.preventDefault();
+      playEffect(CLICK, CLICK_VOLUME);
       activate(index);
       return;
     }
@@ -255,9 +276,6 @@ export default function Menu() {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setPos((p) => p - 1);
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      activate(index);
     }
   }
 
@@ -265,6 +283,7 @@ export default function Menu() {
   // it, like moving the wheel and then pressing start. Keyboard Enter/Space
   // has no pointerdown, so it always opens.
   function onRowClick(p: number) {
+    playEffect(CLICK, CLICK_VOLUME);
     if (!pressedSelected.current) {
       pressedSelected.current = true;
       setPos(p);
@@ -273,12 +292,13 @@ export default function Menu() {
     activate(mod(p, n));
   }
 
-  const bpm = category?.bpm ?? "???";
   // the selected row's stats; an empty radar on a filler row
+  const bpm = category?.bpm ?? "???";
   const radar = category?.radar ?? null;
 
   return (
-    <div className="stage" ref={stageRef}>
+    // .leaving slides the pieces back out (menu.css)
+    <div className={launching ? "stage leaving" : "stage"} ref={stageRef}>
       <div className="window">
         <Backdrop />
 
@@ -287,7 +307,7 @@ export default function Menu() {
             <h1 className="title">Select Music</h1>
           </div>
           {/* hidden from screen readers so it isn't announced every second */}
-          <span className="badge timer" aria-hidden="true">
+          <span className="badge timer" aria-hidden="true" onAnimationEnd={() => setCounting(true)}>
             {String(timer).padStart(2, "0")}
           </span>
         </header>
@@ -357,7 +377,6 @@ export default function Menu() {
                         "row",
                         `tone-${item.tone}`,
                         selected && "selected",
-                        selected && launching && "launching",
                       ]
                         .filter(Boolean)
                         .join(" ")}
@@ -400,10 +419,13 @@ export default function Menu() {
         </p>
       </div>
 
+      {/* once the pieces have slid out, fade to the game screen's navy */}
       {launching && (
-        <div className="go" aria-hidden="true">
-          <span className="go-text">Here we go!</span>
-        </div>
+        <div
+          className="fade-out"
+          aria-hidden="true"
+          style={{ animationDelay: `${LEAVE_MS}ms`, animationDuration: `${FADE_OUT_MS}ms` }}
+        />
       )}
     </div>
   );
