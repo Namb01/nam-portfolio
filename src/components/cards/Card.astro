@@ -1,0 +1,24 @@
+---
+// The shell every page's card shares, so they all look and behave alike: a
+// header with the page's title, then the page's own content (whatever is put
+// between <Card> and </Card>).
+// Styles are in game.css under "content cards".
+
+type Props = {
+  id: string; // the page this card is on, e.g. "about"
+  title: string;
+  class?: string; // an extra class for this page's own layout
+};
+
+const { id, title, class: extra } = Astro.props;
+---
+
+<section class:list={["card", "page-card", extra]} aria-labelledby={`${id}-heading`}>
+  <header class="card-head">
+    <h2 id={`${id}-heading`} class="card-title">{title}</h2>
+  </header>
+
+  <div class="card-body">
+    <slot />
+  </div>
+</section>

@@ -1,0 +1,14 @@
+---
+// The game screen's backdrop: the page's dark base colour (set on the
+// screen itself), with a wide slanted band running up to the right, a hard
+// rim along its edge and a stripe beside it. The colours come from the
+// page's theme (src/data/themes.ts); the styles are in game.css under
+// "backdrop". It fills the screen behind everything and stays put when the
+// page scrolls.
+---
+
+<svg class="backdrop" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <polygon class="bd-band" points="-200,900 520,900 1720,0 1000,0" />
+  <polygon class="bd-band-rim" points="520,900 560,900 1760,0 1720,0" />
+  <polygon class="bd-stripe" points="640,900 760,900 1960,0 1840,0" />
+</svg>

@@ -1,0 +1,42 @@
+---
+import Card from "./Card.astro";
+
+// The About page: your name and role, the write-up on the left and the
+// headshot on the right. The paragraphs are filler until the real write-up
+// is ready: replace them below. Styles are in game.css under "About page".
+---
+
+<Card id="about" title="About Me" class="about-card">
+  <div class="about-text">
+    <p class="about-name">Nam Bui</p>
+    <p class="about-role">Software Engineer</p>
+
+    <p class="card-lead">
+      Hi! I'm a recent Computer Science graduate from the University of Michigan
+      with an interest in building interactive, user-focused software.
+    </p>
+
+    <p>
+      My experience spans full-stack web development, working with
+      technologies like React, JavaScript, TypeScript, Node.js, and
+      databases. I'm always looking for opportunities to learn,
+      experiment with new technologies, and become a better engineer.
+    </p>
+
+    <p>
+      When I'm not coding, I'm probably dancing. I've done 
+      hip-hop for 4 years, choreographing pieces and performing in teams.
+      Teaching my own choreography taught me that if people can't follow it, 
+      it's not their fault, it's the piece. I think about code the same way.
+    </p>
+
+    <p>
+      Thanks for visiting my website! I'm excited to keep building, keep learning, and see where the
+      next level takes me.
+    </p>
+  </div>
+
+  <figure class="about-photo">
+    <img src="/headshot.webp" width="640" height="800" alt="Nam Bui" />
+  </figure>
+</Card>

@@ -321,10 +321,10 @@
 /* Lines up with the jacket art and the stats: from the page margin to where
    the banners' right padding starts. */
 /* inside the jacket box, right under the art */
+/* the label with the number right beside it */
 .best-score {
     margin: 0;
     display: flex;
-    justify-content: space-between;
     align-items: baseline;
     gap: var(--space-3);
     font-family: var(--font-display);
@@ -340,7 +340,8 @@
 }
 
 .best-score-value {
-    font-size: 2rem;
+    /* shrinks with the screen, so all ten digits fit the box */
+    font-size: clamp(1.3rem, 2.6vw, 2rem);
     line-height: 1;
     letter-spacing: 0.06em;
     font-variant-numeric: tabular-nums;
@@ -442,6 +443,8 @@
     min-height: 0;
     overflow: hidden;
     margin-block: calc(var(--pad) * -1);
+    /* swipes move the wheel (Menu.tsx), not the page */
+    touch-action: none;
 }
 
 .list {
@@ -700,6 +703,23 @@
     outline-offset: 3px;
 }
 
+/* The instructions and the music button blink like an old arcade
+   screen's "PRESS START": switching straight between lit and greyed out,
+   no fade. Under a blink a second, so it's calm, not flashing. */
+.hint-keys,
+.hint-touch,
+.sound-toggle {
+    animation: hint-blink 1.4s steps(1, end) infinite;
+}
+
+@keyframes hint-blink {
+    50%,
+    100% {
+        filter: grayscale(1);
+        opacity: 0.4;
+    }
+}
+
 @media (pointer: coarse) {
     .hint-keys {
         display: none;
@@ -708,6 +728,29 @@
     /* inline-block so it can slide in (see the menu entrance) */
     .hint-touch {
         display: inline-block;
+    }
+
+    /* no keyboard on a touch screen, so the music button drops its M key */
+    .sound-toggle kbd {
+        display: none;
+    }
+
+    /* and looks like a button to tap: a light key-cap like the keys in the
+       desktop instructions, big enough for a thumb, that presses down when
+       tapped */
+    .sound-toggle {
+        min-height: 36px;
+        padding: 4px 12px;
+        background: var(--chrome);
+        color: var(--ink);
+        border: 2px solid var(--ink);
+        border-bottom-width: 4px;
+        border-radius: 4px;
+    }
+
+    .sound-toggle:active {
+        border-bottom-width: 2px;
+        margin-top: 2px;
     }
 }
 
@@ -863,6 +906,23 @@
     --stagger: 420ms;
 }
 
+/* The instructions and the music button come in last; the music button
+   from the right, since it sits at the right end. Both keep their slow
+   blink (above) going alongside the slide. */
+.menu-enter .hint-keys,
+.menu-enter .hint-touch {
+    animation:
+        enter-from-left var(--enter-time) var(--ease) calc(var(--enter-delay) + var(--stagger, 0ms)) both,
+        hint-blink 1.4s steps(1, end) infinite;
+}
+
+.menu-enter .sound-toggle {
+    --stagger: 420ms;
+    animation:
+        enter-from-right var(--enter-time) var(--ease) calc(var(--enter-delay) + var(--stagger, 0ms)) both,
+        hint-blink 1.4s steps(1, end) infinite;
+}
+
 @keyframes enter-from-left {
     from {
         transform: translateX(-100vw);
@@ -897,7 +957,8 @@
 .stage.leaving .window-bar::before,
 .stage.leaving .window-bar::after,
 .stage.leaving .window-bar .badge,
-.stage.leaving .wheel {
+.stage.leaving .wheel,
+.stage.leaving .sound-toggle {
     animation: leave-to-right var(--leave-time) var(--ease-in) var(--leave-stagger, 0ms) both;
 }
 

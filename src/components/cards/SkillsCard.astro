@@ -1,0 +1,28 @@
+---
+import Card from "./Card.astro";
+import { SKILLS } from "../../data/content";
+
+// The Skills page: an opening line, then one tile per group of tools. The
+// groups are in src/data/content.ts; the opening line below is filler.
+// Styles are in game.css under "Skills page".
+---
+
+<Card id="skills" title="Skills">
+  <p class="card-lead">
+    What I've worked with so far. React and TypeScript are home
+    base, and I pick up whatever else a project needs.
+  </p>
+  <div class="groups">
+    {
+      SKILLS.map((group) => (
+        <section class="group">
+          <h3 class="tile-title">{group.name}</h3>
+          <ul class="tags">
+            {group.items.map((item) => <li class="tag">{item}</li>)}
+          </ul>
+          <p>{group.blurb}</p>
+        </section>
+      ))
+    }
+  </div>
+</Card>

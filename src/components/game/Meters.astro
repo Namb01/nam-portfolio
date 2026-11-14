@@ -1,0 +1,21 @@
+---
+// Along the top of the game screen: both players' life meters, with the
+// stage between them. Just for show. Styles are in game.css under "top".
+
+// How full player 1's life meter is, 0 to 1 (a song starts at half).
+const LIFE = 0.5;
+---
+
+<header class="hud" aria-hidden="true" style={`--life: ${LIFE}`}>
+  <div class="gauge gauge-p1">
+    <span class="gauge-track"><span class="gauge-fill"></span></span>
+  </div>
+  <p class="stage">
+    <span class="stage-number">1ST</span>
+    <span class="stage-word">STAGE</span>
+  </p>
+  <!-- player 2 hasn't joined, so their meter is empty -->
+  <div class="gauge gauge-p2">
+    <span class="gauge-track"></span>
+  </div>
+</header>

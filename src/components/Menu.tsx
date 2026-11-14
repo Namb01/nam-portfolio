@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, TouchEvent, WheelEvent } from "react";
 import "../styles/menu.css";
 import { isMuted, playEffect, playPreview, preloadEffect, setMuted } from "../lib/sound";
 import Radar from "./Radar";
@@ -29,8 +29,8 @@ const SWOOSH = "/sounds/universfield-fast-swoosh-383967.mp3";
 const SWOOSH_VOLUME = 0.06;
 
 // The interface sound for picking something on the wheel: any click or tap
-// on a row, and Enter, or Space on the selected one. The same
-// sound as the coin on the start screen, a little quieter.
+// on a row, and Enter or Space on the selected one. The same sound as the
+// coin on the start screen, a little quieter.
 const CLICK = "/sounds/soundreality-ui-interface-sound-16-299042.mp3";
 const CLICK_VOLUME = 0.2;
 
@@ -46,10 +46,17 @@ type Item = {
   tone: Tone;
 };
 
-// Locked "COMING SOON" rows pad the wheel out so it looks full.
+// Scrolling and swiping the wheel: how far a mouse wheel or trackpad has to
+// scroll for one row, the shortest gap between rows while it keeps going
+// (so a fast trackpad flick doesn't race through the list), and how far a
+// finger has to drag for one row.
+const SCROLL_STEP = 40;
+const SCROLL_GAP_MS = 90;
+const SWIPE_STEP = 48;
+
+// Locked "COMING SOON" rows pad the wheel out to this many, so it looks full.
 const MIN_ROWS = 10;
 
-// filler rows "COMING SOON"
 function withFiller(items: Item[]): Item[] {
   const count = Math.max(MIN_ROWS - items.length, 0);
   // first half yellow, second half red
@@ -179,7 +186,8 @@ export default function Menu() {
     return () => window.clearTimeout(id);
   }, [timer, counting]);
 
-  // The browser's back button can restore this page from cache mid-wipe.
+  // The browser's back button can restore this page from cache mid-exit,
+  // with the pieces slid out; put them back.
   useEffect(() => {
     const onShow = (e: PageTransitionEvent) => {
       if (e.persisted) setLaunching(null);
@@ -279,10 +287,51 @@ export default function Menu() {
     }
   }
 
+  // Scrolling over the wheel (mouse wheel or trackpad) moves it a row per
+  // SCROLL_STEP, down for the next row, like the arrow keys.
+  const scrolled = useRef({ amount: 0, last: 0 });
+  function onWheelScroll(e: WheelEvent) {
+    if (launching || e.deltaY === 0) return;
+    const s = scrolled.current;
+    // changing direction starts the count again
+    if (Math.sign(e.deltaY) !== Math.sign(s.amount)) s.amount = 0;
+    s.amount += e.deltaY;
+    const now = performance.now();
+    if (Math.abs(s.amount) < SCROLL_STEP || now - s.last < SCROLL_GAP_MS) return;
+    // read the direction now: the count is reset before React applies the move
+    const direction = Math.sign(s.amount);
+    setPos((p) => p + direction);
+    s.amount = 0;
+    s.last = now;
+  }
+
+  // Swiping on the wheel (touch) moves it a row per SWIPE_STEP of drag:
+  // dragging up brings the next row in, like pulling the list. A swipe
+  // isn't a tap, so the row under the finger isn't picked when it ends.
+  const swipe = useRef({ y: 0, moved: false });
+  function onTouchStart(e: TouchEvent) {
+    swipe.current = { y: e.touches[0].clientY, moved: false };
+  }
+  function onTouchMove(e: TouchEvent) {
+    if (launching) return;
+    const s = swipe.current;
+    const y = e.touches[0].clientY;
+    const dragged = s.y - y;
+    if (Math.abs(dragged) < SWIPE_STEP) return;
+    setPos((p) => p + Math.sign(dragged));
+    s.y = y;
+    s.moved = true;
+  }
+
   // Pointer: the first click or tap on a row selects it, the next one opens
   // it, like moving the wheel and then pressing start. Keyboard Enter/Space
   // has no pointerdown, so it always opens.
   function onRowClick(p: number) {
+    // the end of a swipe, not a tap
+    if (swipe.current.moved) {
+      swipe.current.moved = false;
+      return;
+    }
     playEffect(CLICK, CLICK_VOLUME);
     if (!pressedSelected.current) {
       pressedSelected.current = true;
@@ -326,17 +375,17 @@ export default function Menu() {
                   <span className="stat-value">{bpm} BPM</span>
                 </span>
               </p>
-              {/* The row's art, or a placeholder until it has some. */}
+              {/* The row's art, or a placeholder on the COMING SOON rows. */}
               <div className="jacket-art" aria-hidden="true">
                 {category?.jacket ? (
                   <img className="jacket-image" src={category.jacket} alt="" />
                 ) : (
-                  <span className="jacket-placeholder">Jacket art</span>
+                  <span className="jacket-placeholder">Coming soon</span>
                 )}
               </div>
               <p className="best-score">
                 <span className="best-score-label">BEST SCORE</span>
-                <span className="best-score-value">00000000</span>
+                <span className="best-score-value">0000000000</span>
               </p>
             </div>
 
@@ -347,19 +396,19 @@ export default function Menu() {
             </div>
           </aside>
 
-          <div className="wheel">
-              <ul className={settled ? "list" : "list fresh"}>
-                {Array.from({ length: SPAN * 2 + 1 }, (_, s) => {
-                  const offset = s - SPAN;
-                  const p = pos + offset;
-                  const item = items[mod(p, n)];
-                  const selected = offset === 0;
-                  // The strip shows some items more than once. Only the copy
-                  // nearest the selection is real to keyboards and screen
-                  // readers; the rest are just scenery.
-                  const half = Math.floor(n / 2);
-                  const copy = offset < -half || offset > n - 1 - half;
-                  return (
+          <div className="wheel" onWheel={onWheelScroll} onTouchStart={onTouchStart} onTouchMove={onTouchMove}>
+            <ul className={settled ? "list" : "list fresh"}>
+              {Array.from({ length: SPAN * 2 + 1 }, (_, s) => {
+                const offset = s - SPAN;
+                const p = pos + offset;
+                const item = items[mod(p, n)];
+                const selected = offset === 0;
+                // The strip shows some items more than once. Only the copy
+                // nearest the selection is real to keyboards and screen
+                // readers; the rest are just scenery.
+                const half = Math.floor(n / 2);
+                const copy = offset < -half || offset > n - 1 - half;
+                return (
                   <li
                     // keyed by spot on the strip, so each row keeps its
                     // element (and slides) as the wheel moves
@@ -373,13 +422,7 @@ export default function Menu() {
                     <button
                       type="button"
                       ref={selected ? selectedRef : undefined}
-                      className={[
-                        "row",
-                        `tone-${item.tone}`,
-                        selected && "selected",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
+                      className={selected ? `row tone-${item.tone} selected` : `row tone-${item.tone}`}
                       tabIndex={selected ? 0 : -1}
                       aria-disabled={item.locked || undefined}
                       onPointerDown={() => {
@@ -395,9 +438,9 @@ export default function Menu() {
                       <span className="row-arrow" aria-hidden="true" />
                     </button>
                   </li>
-                  );
-                })}
-              </ul>
+                );
+              })}
+            </ul>
           </div>
         </div>
 
@@ -406,7 +449,7 @@ export default function Menu() {
             <span>Move <kbd>↑</kbd><kbd>↓</kbd></span>
             <span>Select <kbd>Space</kbd></span>
           </span>
-          <span className="hint-touch">Tap to pick, tap again to open</span>
+          <span className="hint-touch">Scroll and Tap</span>
           <button
             type="button"
             className="sound-toggle"

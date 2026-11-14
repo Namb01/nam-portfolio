@@ -1,0 +1,84 @@
+---
+import arrowSvg from "../../../public/ddr arrow.svg?raw";
+
+// Player 1's lane, behind the page's content: the four grey step arrows
+// under their meter, and a still snapshot of notes on their way up to them.
+// Scenery only. Styles are in game.css under "step arrows" and "lane".
+
+// The arrow (public/ddr arrow.svg, pointing up), read when the site is
+// built. It's drawn in five layers: an outline, a white rim and three shades
+// of blue. Each layer's colour comes from a CSS variable (--arrow-0 to
+// --arrow-4, in game.css), so one copy of the arrow serves both the grey step
+// arrows and the coloured notes. Its own colours are the fallback.
+const arrowLayers = [...arrowSvg.matchAll(/<path d="([^"]+)" fill="(#[0-9a-fA-F]{6})"/g)].map(([, d, fill], i) => ({
+  d,
+  style: `fill: var(--arrow-${i}, ${fill})`,
+}));
+
+// The four columns, left to right like the pads: each is the up arrow turned
+// to face its way.
+const ARROWS = [
+  { dir: "left", turn: -90 },
+  { dir: "down", turn: 180 },
+  { dir: "up", turn: 0 },
+  { dir: "right", turn: 90 },
+];
+
+// The notes, like a moment of a song's chart. Each has a column (0 left,
+// 1 down, 2 up, 3 right), how far below the top of the step arrows it is (in
+// arrow heights) and a colour. Two notes on one line are a jump. `hold` makes
+// it a freeze arrow: a green note with a tail that many arrow heights long.
+// The ones past the bottom of the screen are cut off.
+type Note = { lane: number; y: number; color: "blue" | "pink" | "yellow" | "green"; hold?: number };
+const NOTES: Note[] = [
+  { lane: 0, y: 1.5, color: "pink" },
+  { lane: 2, y: 2.1, color: "yellow" },
+  { lane: 0, y: 2.7, color: "pink" },
+  { lane: 3, y: 3.3, color: "blue" },
+  { lane: 1, y: 3.9, color: "pink" },
+  { lane: 2, y: 3.9, color: "pink" },
+  { lane: 0, y: 5.1, color: "blue" },
+  { lane: 1, y: 5.7, color: "yellow" },
+  { lane: 2, y: 6.3, color: "blue" },
+  { lane: 3, y: 6.3, color: "green", hold: 2.4 },
+  { lane: 0, y: 7.5, color: "pink" },
+  { lane: 1, y: 8.7, color: "yellow" },
+  { lane: 2, y: 9.3, color: "pink" },
+  { lane: 0, y: 9.9, color: "green", hold: 1.8 },
+  { lane: 3, y: 10.5, color: "blue" },
+  { lane: 1, y: 11.7, color: "pink" },
+  { lane: 2, y: 12.3, color: "yellow" },
+];
+---
+
+<!-- The arrow, drawn once and reused by each step arrow and note. -->
+<svg class="defs" aria-hidden="true">
+  <symbol id="step-arrow" viewBox="0 0 700 700">
+    {arrowLayers.map(({ d, style }) => <path d={d} style={style} fill-rule="evenodd" />)}
+  </symbol>
+</svg>
+
+<!-- The notes on their way up (freeze arrows trail a tail). -->
+<div class="notes" aria-hidden="true">
+  {
+    NOTES.map(({ lane, y, color, hold }) => (
+      <>
+        {hold && <span class="note-tail" style={`--lane: ${lane}; --y: ${y}; --hold: ${hold}`} />}
+        <svg class={`note note-${color}`} viewBox="0 0 700 700" style={`--lane: ${lane}; --y: ${y}`}>
+          <use href="#step-arrow" transform={`rotate(${ARROWS[lane].turn} 350 350)`} />
+        </svg>
+      </>
+    ))
+  }
+</div>
+
+<!-- The step arrows, under player 1's meter, where the notes line up. -->
+<div class="receptors p1" aria-hidden="true">
+  {
+    ARROWS.map(({ dir, turn }) => (
+      <svg class={`receptor receptor-${dir}`} viewBox="0 0 700 700">
+        <use href="#step-arrow" transform={`rotate(${turn} 350 350)`} />
+      </svg>
+    ))
+  }
+</div>

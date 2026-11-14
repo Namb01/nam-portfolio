@@ -1,0 +1,33 @@
+---
+import Card from "./Card.astro";
+import { CONTACTS } from "../../data/content";
+
+// The Contact page: an opening line, then one row per way to get in touch,
+// each a link. The rows are in src/data/content.ts. Email opens a new
+// message; the sites open in a new browser tab, so the portfolio stays open.
+// Styles are in game.css under "Contact page".
+---
+
+<Card id="contact" title="Contact" class="contact-card">
+  <p class="card-lead">
+    I'm looking for new grad software engineering roles, especially frontend or full-stack. Email is the best way to reach me.
+  </p>
+  <dl class="contacts">
+    {
+      CONTACTS.map((c) => (
+        <div class="contact">
+          <dt>{c.label}</dt>
+          <dd>
+            {c.href.startsWith("mailto:") ? (
+              <a href={c.href}>{c.value}</a>
+            ) : (
+              <a href={c.href} target="_blank" rel="noopener noreferrer">
+                {c.value} <span aria-hidden="true">↗</span>
+              </a>
+            )}
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+</Card>

@@ -1,0 +1,35 @@
+---
+import Card from "./Card.astro";
+import { PROJECTS } from "../../data/content";
+
+// The Projects page: one tile per project, each a screenshot, a name, the
+// stack as tags, a line or two, and where to find it. The projects are in
+// src/data/content.ts. Styles are in game.css under "Projects page".
+---
+
+<Card id="projects" title="Projects">
+  <ul class="tiles">
+    {
+      PROJECTS.map((p) => (
+        <li class="tile">
+          <div class="tile-shot" aria-hidden="true">
+            <span>Screenshot</span>
+          </div>
+          <div class="tile-body">
+            <h3 class="tile-title">{p.name}</h3>
+            {/* the stack ("React / Node.js") as one tag per tool */}
+            <ul class="tags">
+              {p.stack.split(" / ").map((tool) => <li class="tag">{tool}</li>)}
+            </ul>
+            <p>{p.blurb}</p>
+            {/* plain labels for now; these become links to the live site and the code */}
+            <p class="tile-links">
+              <span>Live demo ↗</span>
+              <span>Source code ↗</span>
+            </p>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</Card>

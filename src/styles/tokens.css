@@ -1,4 +1,8 @@
+/* Design tokens: the colours, fonts, spacing and timing every stylesheet
+   shares. Change a value here and it changes everywhere. */
+
 :root {
+    /* ---------- colours ---------- */
     --green: #1FCB5E;
     --ink: #0B0B12;
     --chrome: #E8F1F4;
@@ -14,7 +18,8 @@
     /* Menu palette. The menu's colours all come from here (and the colours
        above), so a whole new palette is just a new set of these values. */
     --menu-bg: #1AA3B1;
-    --band-fill: var(--teal);
+    /* the stepped band across the backdrop: a darker teal than the rest */
+    --band-fill: #07606C;
     --band-rim: #108E9B;
     --band-line: #064F5A;
     --band-dots: rgba(61, 227, 234, 0.2);
@@ -34,18 +39,21 @@
     --sel-text: #E6FBFF;
     --sel-edge: var(--aqua);
 
+    /* ---------- fonts ---------- */
+
     /* Orbitron (Google Fonts, loaded in Base.astro) for everything. It has no
        italic, so the browser slants it where the styles ask for italic. */
     --font-display: "Orbitron", system-ui, sans-serif;
-    --font-mono: "YourMonoFont", ui-monospace, monospace;
     --font-body: "Orbitron", system-ui, sans-serif;
 
+    /* ---------- spacing ---------- */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 16px;
     --space-4: 24px;
     --space-5: 40px;
 
+    /* ---------- motion ---------- */
     --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --dur: 200ms;
 }
