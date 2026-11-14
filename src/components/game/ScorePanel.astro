@@ -1,0 +1,28 @@
+---
+// In the bottom left corner of the game screen: player 1's score panel,
+// touching the bottom and side of the screen, like a player's score box.
+// Two tabs sit on top of it: the difficulty (for show), and beside it Back
+// to the menu. Styles are in game.css under "bottom".
+
+type Props = { id: string }; // the page we're on
+
+const { id } = Astro.props;
+
+// Just for show, like a song in progress: the difficulty played and the
+// score so far.
+const DIFFICULTY = "STANDARD";
+const SCORE = "0000428600";
+---
+
+<footer class="hud-bottom">
+  <div class="hud-tabs">
+    <span class="tab difficulty" aria-hidden="true">{DIFFICULTY}</span>
+    <!-- back to the menu, on the row this page came from -->
+    <a class="tab back" href={`/#${id}`} aria-label="Back to Select Music">
+      <span aria-hidden="true">◀</span> Back
+    </a>
+  </div>
+  <p class="score-panel" aria-hidden="true">
+    <span class="score">{SCORE}</span>
+  </p>
+</footer>

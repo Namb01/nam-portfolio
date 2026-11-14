@@ -25,7 +25,7 @@ export const CATEGORIES: Category[] = [
     jacket: "/jackets/about.webp",
     blurb: "Who's behind the screen",
     bpm: 136,
-    radar: { frontend: 3, backend: 3, design: 7, scale: 3, polish: 6 },
+    radar: { hype: 6, chill: 8, flair: 7, focus: 4, soul: 10 },
   },
   {
     id: "resume",
@@ -34,7 +34,7 @@ export const CATEGORIES: Category[] = [
     jacket: "/jackets/resume.webp",
     blurb: "My experience at a glance",
     bpm: 153,
-    radar: { frontend: 7, backend: 7, design: 5, scale: 6, polish: 8 },
+    radar: { hype: 5, chill: 3, flair: 4, focus: 10, soul: 5 },
   },
   {
     id: "projects",
@@ -42,7 +42,7 @@ export const CATEGORIES: Category[] = [
     jacket: "/jackets/projects.webp",
     blurb: "Things I've built",
     bpm: 161,
-    radar: { frontend: 8, backend: 7, design: 6, scale: 6, polish: 7 },
+    radar: { hype: 9, chill: 4, flair: 8, focus: 8, soul: 7 },
   },
   {
     id: "skills",
@@ -50,7 +50,7 @@ export const CATEGORIES: Category[] = [
     jacket: "/jackets/skills.webp",
     blurb: "Tools I've used in real projects",
     bpm: 122,
-    radar: { frontend: 8, backend: 6, design: 5, scale: 5, polish: 3 },
+    radar: { hype: 7, chill: 5, flair: 6, focus: 9, soul: 4 },
   },
   {
     id: "contact",
@@ -58,6 +58,6 @@ export const CATEGORIES: Category[] = [
     jacket: "/jackets/contact.webp",
     blurb: "Say hello",
     bpm: 80,
-    radar: { frontend: 3, backend: 2, design: 6, scale: 2, polish: 9 },
+    radar: { hype: 4, chill: 10, flair: 6, focus: 3, soul: 8 },
   },
 ];

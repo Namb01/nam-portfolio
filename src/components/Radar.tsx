@@ -1,25 +1,33 @@
 import { useEffect, useRef } from "react";
 
-// Stats radar for the selected row, like the circular stats chart on DDR's
-// song select: five stats from 0 to 10 plotted as a filled shape over a
-// pentagon in a ringed disc, with the stat names around the outside. When the
-// selection changes, the shape morphs from the old stats into the new ones.
+// Stats radar for the selected row, like the circular stats chart on a
+// rhythm game's song select: five stats from 0 to 10 plotted as a filled
+// shape over a pentagon in a ringed disc, with the stat names around the
+// outside. When the selection changes, the shape morphs from the old stats
+// into the new ones.
+//
+// The stats describe each row's feel, like a song's, not tech skills:
+//   hype   how much energy it has
+//   chill  how laid-back it is
+//   flair  how much style and personality it shows
+//   focus  how detailed and heads-down it is
+//   soul   how personal it is
 
 export type RadarStats = {
-  frontend: number;
-  backend: number;
-  design: number;
-  scale: number;
-  polish: number;
+  hype: number;
+  chill: number;
+  flair: number;
+  focus: number;
+  soul: number;
 };
 
 // clockwise from the top
 const AXES: { key: keyof RadarStats; label: string }[] = [
-  { key: "frontend", label: "FRONTEND" },
-  { key: "backend", label: "BACKEND" },
-  { key: "design", label: "DESIGN" },
-  { key: "scale", label: "SCALE" },
-  { key: "polish", label: "POLISH" },
+  { key: "hype", label: "HYPE" },
+  { key: "chill", label: "CHILL" },
+  { key: "flair", label: "FLAIR" },
+  { key: "focus", label: "FOCUS" },
+  { key: "soul", label: "SOUL" },
 ];
 
 // drawing sizes, in the SVG's own units (the viewBox is centred on 0, 0)

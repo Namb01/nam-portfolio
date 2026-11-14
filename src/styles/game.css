@@ -1,4 +1,13 @@
-/* The game screen (src/pages/play/[id].astro). */
+/* The game screen (src/pages/play/[id].astro and the components it uses).
+
+   Sections, in this order, and the component each one styles:
+     the screen itself            pages/play/[id].astro
+     backdrop                     components/game/Backdrop.astro
+     top: meters and stage        components/game/Meters.astro
+     step arrows, lane: notes     components/game/Lane.astro
+     bottom: score, with Back     components/game/ScorePanel.astro
+     content cards                components/cards/Card.astro, shared by every page
+     About / Projects / Skills / Contact page    that page's card */
 
 /* the page behind it too, so nothing teal shows while it loads */
 html:has(.game),
@@ -7,15 +16,14 @@ body:has(.game) {
 }
 
 /* A dark stage framed like a rhythm game mid-song: meters along the top,
-   two panels along the bottom (Back and the score; links to the other
-   pages), a
-   backdrop in the colours of the row's jacket art and player 1's lane
-   behind, and a page's own content in cards on top.
+   the score panel in the bottom left corner (with Back), a backdrop in the
+   colours of the row's jacket art and player 1's lane behind, and the
+   page's own content in a card on top.
    Three columns, the same as the meters across the top: player 1's meter,
    the stage, player 2's meter. Player 1's arrows sit under their meter.
    Scrolls if the content is taller than the screen (phones).
    Layers: backdrop -1, lane (arrows, notes) 0, meters 1, content 2,
-   bottom panels 3. */
+   score panel 3. */
 .game {
     /* space at the screen's sides */
     --gutter: clamp(12px, 3vw, 40px);
@@ -39,7 +47,7 @@ body:has(.game) {
     padding-inline: var(--gutter);
     font-family: var(--font-display);
     color: var(--chrome);
-    /* the page's own dark base colour (THEMES in the page) */
+    /* the page's own dark base colour (src/data/themes.ts) */
     background-color: var(--bd-bg, #040A1F);
     background-image: radial-gradient(rgba(61, 227, 234, 0.07) 1.6px, transparent 2px);
     background-size: 22px 22px;
@@ -56,11 +64,11 @@ body:has(.game) {
 
 /* ---------- backdrop ---------- */
 
-/* Fills the screen behind everything and stays put when the page scrolls.
-   Flat, dark shapes (no glows): a slanted band with a rim and a stripe, the
-   page's own motif, halftone dots and sparkles. The colours are the --bd-*
-   variables, set per page from its jacket art (THEMES in the page). Kept
-   dim, so the lane and the cards read clearly over it; the .game dot grid
+/* Fills the screen behind everything and stays put when the page scrolls:
+   a wide slanted band with a hard rim and a stripe beside it, flat (no
+   glows), over the page's base colour. The colours are the --bd-*
+   variables, set per page from its jacket art (src/data/themes.ts). Kept
+   dim, so the lane and the card read clearly over it; the .game dot grid
    shows through. */
 .backdrop {
     position: fixed;
@@ -84,87 +92,6 @@ body:has(.game) {
 .bd-stripe {
     fill: var(--bd-stripe);
     opacity: 0.5;
-}
-
-.bd-dots-a {
-    color: var(--bd-dots-a);
-    opacity: 0.28;
-}
-
-.bd-dots-b {
-    color: var(--bd-dots-b);
-    opacity: 0.14;
-}
-
-/* the dots take their field's colour */
-#halftone circle {
-    fill: currentColor;
-}
-
-.bd-sparkles {
-    fill: var(--chrome);
-    opacity: 0.55;
-}
-
-/* about: light rays fanning out behind the band */
-.bd-rays {
-    fill: var(--bd-motif);
-    opacity: 0.13;
-}
-
-/* projects: thin diagonal lines over the band, and yellow stars */
-.bd-lines {
-    fill: var(--bd-motif);
-    opacity: 0.16;
-}
-
-.bd-stars {
-    fill: var(--yellow);
-    opacity: 0.75;
-}
-
-/* skills: rows of flat bubbles in three colours, each with a small shine */
-.bd-bubbles {
-    opacity: 0.38;
-}
-
-.bd-bubble-0 {
-    fill: #FF3E8A;
-}
-
-.bd-bubble-1 {
-    fill: #8A3CFF;
-}
-
-.bd-bubble-2 {
-    fill: #23C6B8;
-}
-
-.bd-bubbles .bd-shine {
-    fill: #FFFFFF;
-    opacity: 0.45;
-}
-
-/* contact: scan lines across the screen, a disc, and rings on the floor */
-.bd-scan {
-    color: var(--bd-motif);
-    opacity: 0.07;
-}
-
-#scanlines rect {
-    fill: currentColor;
-}
-
-.bd-rings ellipse {
-    fill: none;
-    stroke: var(--bd-motif);
-    stroke-width: 10;
-    opacity: 0.3;
-}
-
-.bd-rings .bd-disc {
-    fill: var(--bd-motif);
-    opacity: 0.22;
 }
 
 /* the arrow's <symbol>; takes no space */
@@ -348,8 +275,8 @@ body:has(.game) {
 
 /* A still snapshot of a song in progress, behind the page's content: notes
    on their way up to the arrows. The same width and columns as the arrows;
-   it runs from the arrows to the bottom of the screen, behind the bottom
-   panels, so the notes aren't cut off above them. */
+   it runs from the arrows to the bottom of the screen, behind the score
+   panel, so the notes aren't cut off above it. */
 .notes {
     position: relative;
     z-index: 0;
@@ -418,14 +345,12 @@ body:has(.game) {
     opacity: 0.9;
 }
 
-/* ---------- bottom: player 1's score, player 2's links ---------- */
+/* ---------- bottom: player 1's score, with Back ---------- */
 
-/* Two separate panels along the bottom of the screen, like the two players'
-   score boxes: player 1's in the bottom left corner (the score) and player
-   2's in the bottom right (links to the other pages). They touch the bottom
-   and sides of the screen. Each has a slanted tab sitting on top of it: the
-   difficulty over player 1's, Back over player 2's. They stay at the bottom
-   when the page scrolls. */
+/* In the bottom left corner, touching the bottom and side of the screen:
+   player 1's score panel, like a player's score box, with two tabs on top
+   of it, the difficulty and Back. It stays at the bottom when the page
+   scrolls. */
 .hud-bottom {
     position: sticky;
     bottom: 0;
@@ -433,36 +358,21 @@ body:has(.game) {
     grid-column: 1 / -1;
     grid-row: 3;
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 8px clamp(12px, 1.8vw, 28px);
-    /* out to the screen's edges, past the gutters */
+    flex-direction: column;
+    align-items: flex-start;
+    /* out to the screen's edge, past the gutter */
     margin-inline: calc(var(--gutter) * -1);
     font-style: italic;
     font-weight: 900;
     line-height: 1;
     white-space: nowrap;
-    /* only the panels and tabs take clicks; the gap lets them through */
+    /* only the panel and tabs take clicks; the rest lets them through */
     pointer-events: none;
 }
 
-/* one player's side: the tab, then the panel under it */
-.side {
-    display: flex;
-    flex-direction: column;
-}
-
-.side-p1 {
-    align-items: flex-start;
-}
-
-.side-p2 {
-    align-items: flex-end;
-}
-
-/* A score panel: a teal frame around a dark fill, with its inner end cut on
-   a slant, like a meter turned upside down (wider at the bottom). Player
-   2's is the mirror image, so the slants face each other. */
+/* The score panel: a teal frame around a dark fill, with its right end cut
+   on a slant, like a meter turned upside down (wider at the bottom). The
+   score fills it, so the panel is as wide as the score. */
 .score-panel {
     --rim: 4px;
     --slant: clamp(18px, 2.4vw, 34px);
@@ -470,9 +380,9 @@ body:has(.game) {
     isolation: isolate;
     display: flex;
     align-items: center;
-    gap: clamp(8px, 1.3vw, 22px);
     margin: 0;
-    padding: clamp(8px, 1.3vh, 13px) clamp(14px, 1.6vw, 24px);
+    padding: clamp(4px, 0.8vh, 8px) calc(var(--slant) + clamp(8px, 1vw, 14px)) clamp(4px, 0.8vh, 8px)
+        clamp(10px, 1.2vw, 18px);
     background: var(--teal);
     pointer-events: auto;
 }
@@ -486,27 +396,29 @@ body:has(.game) {
     background: #040A1F;
 }
 
-.score-panel-p1 {
-    padding-right: calc(var(--slant) + clamp(14px, 1.6vw, 24px));
-}
-
-.score-panel-p1,
-.score-panel-p1::before {
+.score-panel,
+.score-panel::before {
     clip-path: polygon(0 0, calc(100% - var(--slant)) 0, 100% 100%, 0 100%);
 }
 
-.score-panel-p2 {
-    padding-left: calc(var(--slant) + clamp(14px, 1.6vw, 24px));
+/* the score, large, in chrome */
+.score {
+    font-size: clamp(1.7rem, 3.8vw, 3.6rem);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--chrome);
+    -webkit-text-stroke: 6px var(--ink);
+    paint-order: stroke fill;
 }
 
-.score-panel-p2,
-.score-panel-p2::before {
-    clip-path: polygon(var(--slant) 0, 100% 0, 100% 100%, 0 100%);
+/* the two tabs on top of the panel, joined: Back's slanted left edge sits
+   against STANDARD's slanted right edge, with a thin line of ink between */
+.hud-tabs {
+    display: flex;
+    align-items: flex-end;
 }
 
-/* A tab on top of a panel: a pink plate with an ink rim, flush with the
-   screen's edge and cut on a slant at its inner end, like the panel under
-   it. The difficulty on the left; Back, its mirror image, on the right. */
+/* A tab: a coloured plate with an ink rim and slanted ends. */
 .tab {
     --rim: 3px;
     --slant: clamp(12px, 1.5vw, 22px);
@@ -517,25 +429,30 @@ body:has(.game) {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     text-decoration: none;
-    color: var(--chrome);
-    -webkit-text-stroke: 4px var(--ink);
-    paint-order: stroke fill;
     background: var(--ink);
     pointer-events: auto;
 }
 
-/* the pink fill, inside the rim (no rim along the bottom, where the tab
-   meets its panel) */
+/* the fill, inside the rim (no rim along the bottom, where the tab meets
+   the panel) */
 .tab::before {
     content: "";
     position: absolute;
     inset: var(--rim) var(--rim) 0;
     z-index: -1;
-    background: var(--pink);
 }
 
+/* The difficulty: pink, flush with the screen's edge, its right end cut on
+   a slant. For show. */
 .difficulty {
     padding-right: calc(var(--slant) + 1.1em);
+    color: var(--chrome);
+    -webkit-text-stroke: 4px var(--ink);
+    paint-order: stroke fill;
+}
+
+.difficulty::before {
+    background: var(--pink);
 }
 
 .difficulty,
@@ -543,16 +460,26 @@ body:has(.game) {
     clip-path: polygon(0 0, calc(100% - var(--slant)) 0, 100% 100%, 0 100%);
 }
 
+/* Back: a tab of its own beside the difficulty, yellow with ink lettering
+   so it reads as a button, both ends slanted to sit against its
+   neighbour. */
 .back {
-    padding-left: calc(var(--slant) + 1.1em);
+    /* pulled left by one slant, so the two slanted edges meet */
+    margin-left: calc(var(--slant) * -1);
+    padding-inline: calc(var(--slant) + 0.9em);
+    color: var(--ink);
+}
+
+.back::before {
+    background: var(--yellow);
 }
 
 .back,
 .back::before {
-    clip-path: polygon(var(--slant) 0, 100% 0, 100% 100%, 0 100%);
+    clip-path: polygon(0 0, calc(100% - var(--slant)) 0, 100% 100%, var(--slant) 100%);
 }
 
-/* Back lights up aqua under the pointer, and yellow with keyboard focus (an
+/* Back lights up aqua under the pointer, and white with keyboard focus (an
    outline would be cut off by the tab's shape) */
 .back:hover::before {
     background: var(--aqua);
@@ -560,59 +487,21 @@ body:has(.game) {
 
 .back:focus-visible {
     outline: none;
+    text-decoration: underline;
 }
 
 .back:focus-visible::before {
-    background: var(--yellow);
+    background: #FFFFFF;
 }
 
-.score {
-    font-size: clamp(1.2rem, 2.5vw, 2.3rem);
-    letter-spacing: 0.05em;
-    font-variant-numeric: tabular-nums;
-    color: var(--lime);
-    -webkit-text-stroke: 6px var(--ink);
-    paint-order: stroke fill;
-}
-
-/* Player 2's panel holds the links to the other pages, in the score's lime
-   with its ink outline, so it reads like player 2's score. The page you're
-   on is yellow and underlined. */
-.pages a {
-    padding: 0.45em 0.1em 0.3em;
-    font-size: clamp(0.72rem, 1.2vw, 1.15rem);
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    color: var(--lime);
-    border-bottom: 3px solid transparent;
-    -webkit-text-stroke: 4px var(--ink);
-    paint-order: stroke fill;
-}
-
-.pages a:hover {
-    color: var(--aqua);
-}
-
-.pages a[aria-current="page"] {
-    color: var(--yellow);
-    border-bottom-color: var(--yellow);
-}
-
-.pages a:focus-visible {
-    outline: 3px solid var(--pink);
-    outline-offset: 2px;
-}
-
-/* From 900px down, where the two panels no longer fit side by side: a solid
-   strip across the bottom with two rows. The difficulty, the score and Back
-   on the first; the links spread across the second. The tabs and panels
-   lose their slants, and everything is a little smaller, so each row fits
-   on one line. */
+/* From 900px down: a solid strip across the bottom, one row: the
+   difficulty, the score, and Back at the right end. No slants, and
+   everything a little smaller. */
 @media (max-width: 900px) {
     .hud-bottom {
-        flex-wrap: wrap;
+        flex-direction: row;
         align-items: center;
-        gap: 4px 10px;
+        gap: 10px;
         padding: 6px var(--gutter);
         background: #040A1F;
         border-top: 4px solid var(--teal);
@@ -620,20 +509,14 @@ body:has(.game) {
         pointer-events: auto;
     }
 
-    .side-p1 {
-        flex-direction: row;
-        align-items: center;
-        gap: 10px;
-        margin-right: auto;
-    }
-
-    /* Back joins the first row and the links take the second */
-    .side-p2 {
+    /* the tabs join the row: difficulty first, Back last */
+    .hud-tabs {
         display: contents;
     }
 
-    .pages {
-        width: 100%;
+    .back {
+        order: 3;
+        margin-left: auto;
     }
 
     .tab,
@@ -653,12 +536,13 @@ body:has(.game) {
     }
 
     /* the score sits straight on the strip */
-    .score-panel-p1 {
+    .score-panel {
+        min-width: 0;
         padding: 0;
         background: none;
     }
 
-    .score-panel-p1::before {
+    .score-panel::before {
         display: none;
     }
 
@@ -667,141 +551,150 @@ body:has(.game) {
         letter-spacing: 0.02em;
         -webkit-text-stroke-width: 4px;
     }
-
-    .score-panel-p2 {
-        --rim: 3px;
-        justify-content: space-between;
-        gap: 0;
-        padding: 4px 10px;
-    }
-
-    .pages a {
-        padding: 0.6em 0 0.4em;
-        font-size: 0.64rem;
-        letter-spacing: 0.01em;
-        -webkit-text-stroke-width: 3px;
-    }
 }
 
 /* ---------- content cards ---------- */
 
-/* A page's content sits in cards over the lane. Nearly solid navy, so the
-   text reads clearly whatever is behind; a teal rim, an ink outline and a
-   hard shadow, like the menu's panels. */
+/* A page's content sits in one card over the scenery (Card.astro). The card
+   is dark frosted glass: the backdrop blurs behind it, so the page's colours
+   still show softly while the text stays easy to read. Rounded corners, a
+   hairline border and a soft shadow; a strip of the page's accent colour
+   along the top. */
 .card {
+    /* the page's accent: its theme's rim colour (src/data/themes.ts) */
+    --accent: var(--bd-rim, var(--aqua));
+    /* text colours on the card */
+    --text: #F2F6F8;
+    --text-soft: rgba(232, 241, 244, 0.78);
+    /* hairlines, and the fill of tiles inside the card */
+    --line: rgba(255, 255, 255, 0.12);
+    --tile: rgba(255, 255, 255, 0.045);
+    /* the font for reading: the system's sans-serif, far easier in long
+       text than Orbitron, which stays for headings and labels */
+    --font-read: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     position: relative;
     z-index: 2;
-    background: rgba(8, 20, 72, 0.94);
-    border: 3px solid var(--teal);
-    outline: 3px solid var(--ink);
-    box-shadow: 8px 8px 0 3px var(--ink);
+    /* clips the accent strip to the rounded corners. "clip", not "hidden":
+       hidden would let the grid shrink the card's row below its content */
+    overflow: clip;
+    color: var(--text);
+    background: rgba(8, 12, 30, 0.84);
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+    backdrop-filter: blur(18px) saturate(1.25);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
-/* The card's title, on a slanted navy plate with a yellow rim (like the
-   stage plate) sitting on the card's top edge. */
-.card-title {
-    position: absolute;
-    top: 0;
-    left: clamp(18px, 2.6vw, 40px);
-    translate: 0 -55%;
-    isolation: isolate;
-    margin: 0;
-    padding: 0.3em 0.9em;
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 900;
-    font-size: clamp(1.15rem, 2.2vw, 1.9rem);
-    line-height: 1.1;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-    color: var(--lime);
-    -webkit-text-stroke: 5px var(--ink);
-    paint-order: stroke fill;
-}
-
-.card-title::before {
+/* the accent strip along the top */
+.card::before {
     content: "";
     position: absolute;
-    inset: 0;
-    z-index: -1;
-    transform: skewX(-16deg);
-    background: var(--navy);
-    border: 3px solid var(--yellow);
-    box-shadow:
-        inset 0 0 0 2px var(--ink),
-        4px 4px 0 var(--ink);
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--accent);
 }
 
-/* ---------- a page's main card ---------- */
-
-/* Each page has one main card. It spans the screen under the meters and
-   sits in the middle of the space above the bottom bar (at the top if it's
-   too tall to centre: "safe"). */
+/* It spans the screen under the meters and sits in the middle of the space
+   above the bottom of the screen (at the top if it's too tall to centre:
+   "safe"). */
 .page-card {
     grid-column: 1 / -1;
     grid-row: 2;
     justify-self: center;
     align-self: safe center;
-    width: min(100%, 1080px);
-    /* room above for the title plate */
-    margin-block: clamp(30px, 5vh, 44px) clamp(16px, 3vh, 28px);
-    padding: clamp(34px, 3.6vw, 52px) clamp(20px, 2.8vw, 40px) clamp(22px, 2.8vw, 40px);
+    width: min(100%, 1040px);
+    margin-block: clamp(14px, 3vh, 36px);
 }
 
-/* Body text in cards uses the system's sans-serif, which reads far easier
-   in long text than Orbitron; headings and labels stay in the display font. */
+/* the header: the page's title, with a hairline under it */
+.card-head {
+    padding: clamp(20px, 2.4vw, 30px) clamp(20px, 2.8vw, 40px) clamp(14px, 1.6vw, 20px);
+    border-bottom: 1px solid var(--line);
+}
+
+/* the page's title, in Orbitron, heavy and slanted like the site's other
+   headings */
+.card-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+    font-style: italic;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    color: #FFFFFF;
+}
+
+.card-body {
+    padding: clamp(20px, 2.6vw, 34px) clamp(20px, 2.8vw, 40px) clamp(24px, 3vw, 40px);
+}
+
+/* Body text: comfortable size and line height, lines no longer than about
+   68 characters, a little softer than the headings. */
 .card p,
 .card dd {
+    max-width: 68ch;
     margin: 0 0 1em;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: clamp(0.98rem, 1.15vw, 1.12rem);
-    line-height: 1.65;
-    color: var(--chrome);
+    font-family: var(--font-read);
+    font-size: clamp(0.97rem, 1.1vw, 1.06rem);
+    line-height: 1.7;
+    color: var(--text-soft);
 }
 
 .card p:last-child {
     margin-bottom: 0;
 }
 
-/* an opening line or two above a card's main content */
+/* an opening line or two: larger and brighter than the body text */
 .card .card-lead {
-    max-width: 62ch;
-    margin-bottom: 1.4em;
+    margin-bottom: 1.3em;
+    font-size: clamp(1.08rem, 1.35vw, 1.25rem);
+    line-height: 1.55;
+    color: var(--text);
 }
 
-/* a small heading inside a card */
+/* A tile inside a card (a project, a group of skills): a slightly lighter
+   surface with a hairline border and rounded corners. */
+.tile,
+.group {
+    min-width: 0;
+    background: var(--tile);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+}
+
+/* a tile's heading, in Orbitron like the title */
 .tile-title {
-    margin: 0 0 0.35em;
+    margin: 0 0 10px;
     font-family: var(--font-display);
+    font-size: clamp(1rem, 1.4vw, 1.2rem);
     font-style: italic;
-    font-weight: 900;
-    font-size: clamp(1.05rem, 1.6vw, 1.35rem);
-    line-height: 1.15;
-    letter-spacing: 0.03em;
-    color: var(--yellow);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    color: #FFFFFF;
 }
 
-/* small labels in a row: tools, or where to find a project */
-.chips {
+/* tags: small outlined pills, for tools */
+.tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 0 0 1em;
+    gap: 6px;
+    margin: 0 0 14px;
     padding: 0;
     list-style: none;
 }
 
-.card .chip {
-    padding: 0.35em 0.8em;
-    font-family: var(--font-display);
+.tag {
+    padding: 4px 10px;
+    font-family: var(--font-read);
     font-size: 0.78rem;
-    font-weight: 800;
+    font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.04em;
-    color: var(--ink);
-    background: var(--aqua);
-    border: 2px solid var(--ink);
-    box-shadow: 2px 2px 0 var(--ink);
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
 }
 
 /* phones: the card starts right under the meters */
@@ -813,23 +706,47 @@ body:has(.game) {
 
 /* ---------- About page ---------- */
 
-/* the write-up on the left and the headshot on the right, sharing the card */
-.about-card {
+/* the write-up on the left and the headshot on the right */
+.about-card .card-body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(200px, 26%, 300px);
+    grid-template-columns: minmax(0, 1fr) clamp(190px, 26%, 270px);
     align-items: center;
-    gap: clamp(20px, 3vw, 44px);
+    gap: clamp(20px, 3.4vw, 48px);
 }
 
-/* the headshot, on the right, in a chrome frame with a hard ink shadow */
-.about-photo {
-    grid-column: 2;
-    grid-row: 1;
+.about-text {
+    min-width: 0;
+}
+
+/* your name, then your role under it in the accent colour */
+.card .about-name {
     margin: 0;
-    border: 4px solid var(--chrome);
-    outline: 3px solid var(--ink);
-    box-shadow: 5px 5px 0 3px var(--ink);
-    background: var(--navy);
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2vw, 1.7rem);
+    font-style: italic;
+    font-weight: 900;
+    line-height: 1.15;
+    color: #FFFFFF;
+}
+
+.card .about-role {
+    margin: 6px 0 18px;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+/* the headshot: rounded, with a hairline border */
+.about-photo {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 .about-photo img {
@@ -840,27 +757,15 @@ body:has(.game) {
     object-fit: cover;
 }
 
-.about-text {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-}
-
-/* phones: the card stacks, a smaller photo on top and the write-up below */
+/* phones: the photo goes on top, smaller */
 @media (max-width: 760px) {
-    .about-card {
+    .about-card .card-body {
         grid-template-columns: minmax(0, 1fr);
     }
 
     .about-photo {
-        grid-column: 1;
         grid-row: 1;
-        justify-self: center;
-        width: min(60%, 220px);
-    }
-
-    .about-text {
-        grid-row: 2;
+        width: min(55%, 200px);
     }
 }
 
@@ -870,57 +775,73 @@ body:has(.game) {
 .tiles {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(16px, 2.2vw, 30px);
+    gap: clamp(14px, 1.8vw, 22px);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
+/* a tile lifts a little and takes the accent on its border under the pointer */
 .tile {
     display: flex;
     flex-direction: column;
-    min-width: 0;
+    overflow: hidden;
+    transition:
+        transform 180ms var(--ease),
+        border-color 180ms;
 }
 
-/* the links sit at the bottom of every tile, however long its text */
-.tile .chips {
-    margin: auto 0 0;
-    padding-top: 0.4em;
+.tile:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
 }
 
-/* where a screenshot goes: halftone dots, like the menu's jacket placeholder */
+/* where a screenshot goes: a wash of the accent colour, with a small label */
 .tile-shot {
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 2 / 1;
     display: grid;
     place-items: center;
-    margin-bottom: 0.9em;
-    background-color: var(--teal);
-    background-image: radial-gradient(rgba(61, 227, 234, 0.45) 2.5px, transparent 3px);
-    background-size: 14px 14px;
-    border: 3px solid var(--ink);
-    box-shadow: 4px 4px 0 var(--ink);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent) 38%, transparent), transparent 70%),
+        rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--line);
 }
 
 .tile-shot span {
-    padding: 3px 10px;
-    font-size: 0.75rem;
-    font-style: italic;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--ink);
-    background: var(--chrome);
-    border: 2px dashed var(--ink);
+    color: var(--text-soft);
 }
 
-/* the stack, under the project's name */
-.card .tile-stack {
-    margin-bottom: 0.6em;
+.tile-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 18px 18px;
+}
+
+.tile-body p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* where to find it, at the bottom of every tile however long its text */
+.card .tile-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: auto 0 0;
+    padding-top: 14px;
     font-family: var(--font-display);
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    line-height: 1.3;
-    color: var(--aqua);
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
 }
 
 @media (max-width: 760px) {
@@ -931,21 +852,20 @@ body:has(.game) {
 
 /* ---------- Skills page ---------- */
 
-/* three groups side by side, with a rule between them; stacked on phones */
+/* three groups side by side; stacked on phones */
 .groups {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(16px, 2.4vw, 32px);
+    gap: clamp(14px, 1.8vw, 22px);
 }
 
 .group {
-    min-width: 0;
-    padding-left: clamp(12px, 1.4vw, 20px);
-    border-left: 3px solid var(--teal);
+    padding: 18px 20px 20px;
 }
 
-.group .tile-title {
-    margin-bottom: 0.7em;
+.group p {
+    font-size: 0.95rem;
+    line-height: 1.6;
 }
 
 @media (max-width: 760px) {
@@ -958,38 +878,61 @@ body:has(.game) {
 
 /* narrower than the other cards: it holds much less */
 .contact-card {
-    width: min(100%, 720px);
+    width: min(100%, 760px);
 }
 
+/* one row per way to get in touch, with a hairline between rows */
 .contacts {
-    display: grid;
-    gap: 12px;
     margin: 0;
+    border-top: 1px solid var(--line);
 }
 
-/* one way to get in touch: its name, then the address */
 .contact {
     display: grid;
     grid-template-columns: clamp(90px, 22%, 150px) minmax(0, 1fr);
     align-items: baseline;
     gap: 12px;
-    padding: 12px 16px;
-    background: rgba(4, 10, 31, 0.6);
-    border: 2px solid var(--teal);
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
 }
 
 .contact dt {
-    font-style: italic;
-    font-weight: 900;
-    font-size: clamp(0.85rem, 1.2vw, 1rem);
-    letter-spacing: 0.05em;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--yellow);
+    color: var(--accent);
 }
 
 .card .contact dd {
     margin: 0;
     overflow-wrap: anywhere;
+    font-size: clamp(1rem, 1.2vw, 1.12rem);
+    color: var(--text);
+}
+
+/* the links: plain text with a faint underline that lights up in the
+   page's accent colour under the pointer */
+.contact a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.3);
+    text-underline-offset: 4px;
+    transition:
+        color 150ms,
+        text-decoration-color 150ms;
+}
+
+.contact a:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+}
+
+.contact a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
 }
 
 .visually-hidden {
