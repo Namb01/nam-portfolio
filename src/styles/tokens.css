@@ -12,7 +12,6 @@
     --lime: #C9F33D;
     --pink: #FF4FA3;
     --peach: #FF9B5E;
-    --red: #E5262B;
     --yellow: #FFE066;
 
     /* Menu palette. The menu's colours all come from here (and the colours
@@ -47,7 +46,6 @@
     --font-body: "Orbitron", system-ui, sans-serif;
 
     /* ---------- spacing ---------- */
-    --space-1: 4px;
     --space-2: 8px;
     --space-3: 16px;
     --space-4: 24px;

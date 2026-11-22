@@ -87,7 +87,6 @@
     inset: 0.08em -0.05em;
     z-index: -1;
     transform: skewX(-18deg);
-    background: linear-gradient(90deg, var(--horizon), var(--teal));
     border: 0.06em solid var(--chrome);
     box-shadow:
         0 0 0 0.04em var(--ink),

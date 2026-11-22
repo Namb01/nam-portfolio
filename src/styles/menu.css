@@ -491,10 +491,10 @@
     height: var(--row-h);
     margin-left: auto;
     display: grid;
-    /* text, level chip, arrow decoration */
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    /* text, arrow decoration */
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 12px;
+    gap: 24px;
     padding: 12px var(--space-4) 12px calc(var(--space-5) + var(--line));
     text-align: left;
     font: inherit;
@@ -573,8 +573,8 @@
     display: grid;
     gap: 2px;
     min-width: 0;
-    /* the chip and arrows slide back left by --shift, so the text stops short
-       by the same amount and gets its "…" before running under them */
+    /* the arrows slide back left by --shift, so the text stops short by
+       the same amount and gets its "…" before running under them */
     max-width: calc(100% - var(--shift, 0px));
 }
 
@@ -585,14 +585,11 @@
     text-overflow: ellipsis;
 }
 
-/* room inside the clip for the outline and the italic lean, pulled back out
-   with negative margins so the text doesn't move */
 .row-label {
+    /* room inside the clip for the outline and the italic lean, pulled back
+       out with negative margins so the text doesn't move */
     padding: 3px 6px;
     margin: -3px -6px;
-}
-
-.row-label {
     font-family: var(--font-display);
     font-style: italic;
     font-weight: 900;
@@ -612,9 +609,10 @@
 
 /* The fading arrows from tealarrow.svg, used as a mask so they can take a
    colour that shows up: the file's own teal would vanish into the teal end
-   of the row gradient. */
+   of the row gradient. The curve pushes each row right by --shift (see
+   .list > li), so the arrows slide back left by the same amount, on the same
+   timing, to stay lined up at the screen's edge on every row, even mid-move. */
 .row-arrow {
-    grid-column: 3;
     /* nearly the row's full inner height */
     --arrow-h: 54px;
     width: calc(var(--arrow-h) * 639 / 222);
@@ -622,19 +620,13 @@
     background-color: var(--aqua);
     -webkit-mask: url("/tealarrow.svg") center / contain no-repeat;
     mask: url("/tealarrow.svg") center / contain no-repeat;
+    translate: calc(var(--shift, 0px) * -1) 0;
+    transition: translate calc(var(--dur) * 1.2) var(--ease);
+    will-change: translate;
 }
 
 .row.selected .row-arrow {
     background-color: var(--text);
-}
-
-/* The curve pushes each row right by --shift (see .list > li), so the arrows
-   slide back left by the same amount, on the same timing, to stay lined up at
-   the screen's edge on every row, even mid-move. */
-.row-arrow {
-    translate: calc(var(--shift, 0px) * -1) 0;
-    transition: translate calc(var(--dur) * 1.2) var(--ease);
-    will-change: translate;
 }
 
 /* ---------- controls hint ---------- */
@@ -866,9 +858,7 @@
 
 .menu-enter .title-block,
 .menu-enter .jacket-box,
-.menu-enter .radar,
-.menu-enter .hint-keys,
-.menu-enter .hint-touch {
+.menu-enter .radar {
     animation: enter-from-left var(--enter-time) var(--ease) calc(var(--enter-delay) + var(--stagger, 0ms)) both;
 }
 
@@ -907,7 +897,7 @@
 }
 
 /* The instructions and the music button come in last; the music button
-   from the right, since it sits at the right end. Both keep their slow
+   from the right, since it sits at the right end. Both keep their arcade
    blink (above) going alongside the slide. */
 .menu-enter .hint-keys,
 .menu-enter .hint-touch {
